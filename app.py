@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 import streamlit as st
 
 # Set up Streamlit Page Configurations
-st.set_page_config(page_title="APSPLDC Grid Control", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="APSPDLC Grid Control", layout="wide", page_icon="⚡")
 
 # ===================================================================== 
 # 1. CORE PIPELINE INITIALIZATION (ML TRAINING - CACHED FOR SPEED) 
