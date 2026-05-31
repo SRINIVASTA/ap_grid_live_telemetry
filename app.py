@@ -176,9 +176,9 @@ try:
         if not field_dispatches:
             print("  🎉 System Healthy. No active critical degradation vectors detected.")
         else:
-        # Print active field alerts
-        for alert in field_dispatches:
-            print(f"  ⚡ [{alert['tier'].upper()} RISK] {alert['asset_id']} -> RUL: {alert['rul']:.1f} Days. Guidance: {alert['guidance']}")
+            # Pushed to the right inside the else block
+            for alert in field_dispatches:
+                print(f"  ⚡ [{alert['tier'].upper()} RISK] {alert['asset_id']} -> RUL: {alert['rul']:.1f} Days. Guidance: {alert['guidance']}")
             
         print("-" * 110)
         print(f"💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
