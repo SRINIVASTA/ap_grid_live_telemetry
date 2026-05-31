@@ -159,7 +159,7 @@ try:
         # ===================================================================== 
         # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
         # ===================================================================== 
-        clear_output(wait=True) 
+        # clear_output(wait=True) 
         print("=" * 110) 
         print(f"⚡ APSPDCL/APTRANSCO INTEGRATED CONTROL MONITOR | TICK #{loop_count}") 
         print(f"🕒 TIMESTAMP (IST): {timestamp} | DLR ENVIRONMENT: Wind {cur_wind:.1f} m/s, Amb {cur_ambient:.1f}°C")
