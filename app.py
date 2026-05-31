@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 import streamlit as st
 
 # Set up Streamlit Page Configurations
-st.set_page_config(page_title="APSPDLC Grid Control", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="APSPDCL Grid Control", layout="wide", page_icon="⚡")
 
 # ===================================================================== 
 # 1. CORE PIPELINE INITIALIZATION (ML TRAINING - CACHED FOR SPEED) 
@@ -41,7 +41,7 @@ CSV_FILE_PATH = "ap_grid_live_telemetry.csv"
 # ===================================================================== 
 # STREAMLIT UI LAYOUT STRUCTURE & SIDEBAR CONTROLS
 # ===================================================================== 
-st.title("⚡ APSPLDC Power Grid Control Room Monitor")
+st.title("⚡ APSPDCL Power Grid Control Room Monitor")
 st.markdown("Real-time automated analytics pipeline with automated ML asset wear tracking and load balancing optimization.")
 
 # Sidebar Settings Controls
