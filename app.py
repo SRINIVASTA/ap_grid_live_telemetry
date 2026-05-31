@@ -1,172 +1,111 @@
 import numpy as np 
 import pandas as pd 
 import os 
+import sys 
 import time 
 from datetime import datetime, timedelta 
 from sklearn.ensemble import RandomForestRegressor 
-import streamlit as st
-
-# Set up Streamlit Page Configurations
-st.set_page_config(page_title="APSPDCL Grid Control", layout="wide", page_icon="⚡")
+from IPython.display import clear_output 
 
 # ===================================================================== 
-# 1. CORE PIPELINE INITIALIZATION (ML TRAINING - CACHED FOR SPEED) 
+# 1. CORE PIPELINE INITIALIZATION (MULTI-MODAL ML TRAINING) 
 # ===================================================================== 
-@st.cache_resource
-def initialize_ml_model():
-    np.random.seed(42) 
-    h_records = 2000 
-    h_temps = np.random.uniform(35.0, 115.0, h_records) 
-    h_loads = np.random.uniform(40.0, 125.0, h_records) 
-    h_health = np.random.uniform(15.0, 100.0, h_records) 
-    
-    t_rul = (h_health * 0.55) - (h_temps * 0.25) - (h_loads * 0.12) + 38 
-    t_rul = np.clip(t_rul, 1, 90) + np.random.normal(0, 1.2, h_records) 
-    
-    model = RandomForestRegressor(n_estimators=50, random_state=42, n_jobs=-1) 
-    model.fit(pd.DataFrame({'temp_C': h_temps, 'load_pct': h_loads, 'insulation_health': h_health}), t_rul) 
-    return model
+print("Initializing Enhanced Multi-Tiered Asset Intelligence Environment...") 
+np.random.seed(42) 
+h_records = 2500 
 
-ml_model = initialize_ml_model()
+# Multi-Modal Feature Synthesis: Telemetry, Drone Imagery Analytics, and Weather Sensors
+h_temps = np.random.uniform(35.0, 115.0, h_records) 
+h_loads = np.random.uniform(40.0, 125.0, h_records) 
+h_health = np.random.uniform(15.0, 100.0, h_records) 
+h_veg_dist = np.random.uniform(0.2, 15.0, h_records)       # Drone Anomaly Detection (m)
+h_sag_cm = np.random.uniform(0.0, 60.0, h_records)          # Drone Physical Anomaly (cm)
+h_ambient_c = np.random.uniform(22.0, 45.0, h_records)      # IoT Environmental Condition
 
-# Financial Parameters (INR ₹) 
+# Degradation Formula updated to account for Drone + Weather factors
+t_rul = (h_health * 0.50) - (h_temps * 0.20) - (h_loads * 0.10) - (h_sag_cm * 0.15) + (h_veg_dist * 0.4) + 35
+t_rul = np.clip(t_rul, 1, 90) + np.random.normal(0, 1.0, h_records) 
+
+# Train Multi-Modal Asset Health Regressor Model
+ml_features = ['temp_C', 'load_pct', 'insulation_health', 'veg_distance_m', 'conductor_sag_cm', 'ambient_temp_C']
+X_train = pd.DataFrame({
+    'temp_C': h_temps, 'load_pct': h_loads, 'insulation_health': h_health,
+    'veg_distance_m': h_veg_dist, 'conductor_sag_cm': h_sag_cm, 'ambient_temp_C': h_ambient_c
+})
+ml_model = RandomForestRegressor(n_estimators=60, random_state=42, n_jobs=-1) 
+ml_model.fit(X_train, t_rul) 
+
+# Core Operational Safety Boundaries
+SAFE_BASE = 70.0 
+ALERT_THRESHOLD = 30.0 
+
+# Dynamic Line Rating (DLR) Logic: Optimizes lines based on cooling wind vs ambient heat
+def calculate_dynamic_ceiling(ambient_temp, wind_speed):
+    base_ceiling = 86.0
+    thermal_cooling_effect = (wind_speed * 0.75) - ((ambient_temp - 30.0) * 0.2)
+    return float(np.clip(base_ceiling + thermal_cooling_effect, 76.0, 96.0))
+
+# Financial System Parameters (INR ₹) 
+COST_REPLACEMENT_GEN = 45000000
 COST_REPLACEMENT_TX = 14000000 
 COST_LINE_REPAIR = 2200000 
 REGULATORY_FINE = 18000000 
 EMERGENCY_LABOR_RATE = 16000 
 PLANNED_LABOR_RATE = 4200 
 AI_SOFTWARE_OVERHEAD = 88000 
-CSV_FILE_PATH = "ap_grid_live_telemetry.csv" 
+
+CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
 # ===================================================================== 
-# STREAMLIT UI LAYOUT STRUCTURE & SIDEBAR CONTROLS
+# 2. TIME-SYNCED INGESTION LOOP & DYNAMIC BALANCING ENGINE 
 # ===================================================================== 
-st.title("⚡ APSPDCL Power Grid Control Room Monitor")
-st.markdown("Real-time automated analytics pipeline with automated ML asset wear tracking and load balancing optimization.")
+print(f"Live Multi-Modal Ingestion Engine Active. Destination Database: {CSV_FILE_PATH}") 
+time.sleep(1.5) 
 
-# Sidebar Settings Controls
-st.sidebar.header("🕹️ System Loop Controls")
-run_pipeline = st.sidebar.toggle("Activate Live Ingestion Engine", value=True)
-refresh_speed = st.sidebar.slider("Refresh Interval (Seconds)", 1.0, 5.0, 2.0)
-
-st.sidebar.markdown("---")
-st.sidebar.header("🎛️ Dynamic Grid Thresholds")
-
-ALERT_THRESHOLD = st.sidebar.slider(
-    "Critical RUL Alert Threshold (Days)", 
-    min_value=10.0, max_value=50.0, value=30.0, step=1.0,
-    help="Assets with an ML-predicted Remaining Useful Life below this value trigger shedding routines."
-)
-
-SAFE_BASE = st.sidebar.slider(
-    "Target Safe Base Load (%)", 
-    min_value=50.0, max_value=80.0, value=70.0, step=1.0,
-    help="The target load limit that a stressed asset will be forced down to during a shed event."
-)
-
-SAFE_CEILING = st.sidebar.slider(
-    "Maximum Safety Ceiling Load (%)", 
-    min_value=81.0, max_value=100.0, value=88.0, step=1.0,
-    help="The maximum load percentage any healthy backup asset is allowed to accept during routing."
-)
-
-# ===================================================================== 
-# LIVE DATA EXPORT & PURGE MANAGEMENT
-# ===================================================================== 
-st.sidebar.markdown("---")
-st.sidebar.header("💾 Data Operations")
-
-# Check if the telemetry log file exists and has data to offer
-if os.path.exists(CSV_FILE_PATH):
-    try:
-        # Load a quick static snapshot of the database file for downloading
-        export_df = pd.read_csv(CSV_FILE_PATH)
-        csv_data = export_df.to_csv(index=False).encode('utf-8')
-        
-        st.sidebar.download_button(
-            label="📥 Export Telemetry Log (CSV)",
-            data=csv_data,
-            file_name=f"ap_grid_telemetry_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            help="Downloads the complete time-series database up to the current snapshot tick."
-        )
-    except Exception:
-        st.sidebar.warning("Export engine preparing log buffers...")
-else:
-    st.sidebar.info("Waiting for data ingestion loop to generate logs...")
-
-if st.sidebar.button("Wipe Telemetry History Log (CSV)"):
-    if os.path.exists(CSV_FILE_PATH):
-        os.remove(CSV_FILE_PATH)
-        st.sidebar.success("CSV log file wiped successfully!")
-        st.rerun()
-
-# Set dynamic placeholders that persist through loop iterations
-placeholder_meta = st.empty()
-st.markdown("---")
-st.subheader("📊 Real-Time Grid Node Status Matrix")
-placeholder_table = st.empty()
-st.markdown("---")
-
-# Layout columns for interactive trending telemetry charts
-st.subheader("📈 Historical Telemetry Performance Trends")
-chart_col1, chart_col2 = st.columns(2)
-placeholder_load_chart = chart_col1.empty()
-placeholder_rul_chart = chart_col2.empty()
-
-st.markdown("---")
-st.subheader("💰 State Power Infrastructure Capital Ledger (INR ₹)")
-col1, col2, col3 = st.columns(3)
-metric_risk = col1.empty()
-metric_cost = col2.empty()
-metric_savings = col3.empty()
-
-# ===================================================================== 
-# 2. TIME-SYNCED MONITORING STREAM LOOP
-# ===================================================================== 
-if run_pipeline:
-    if SAFE_BASE >= SAFE_CEILING:
-        st.error("Configuration Error: Safe Base Load cannot be equal to or greater than the Maximum Safety Ceiling.")
-        st.stop()
-
+try: 
     loop_count = 0 
     while True: 
         loop_count += 1 
         
-        # Sync with Indian Standard Time (IST) 
+        # Indian Standard Time (IST) Synchronization
         ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30) 
         timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S") 
         
-        # Simulating live mid-day telemetry load volatility profiles 
-        peak_hour_multiplier = 1.08 
+        # Simulating fluctuations, environmental dynamics, and drone anomaly ticks
         fluctuation = np.sin(loop_count * 0.4) * 5.0 
-        random_noise = np.random.uniform(-2.0, 2.0) 
+        random_noise = np.random.uniform(-1.5, 1.5) 
+        cur_wind = np.random.uniform(2.0, 14.0)          # Live IoT sensor: Wind Speed (m/s)
+        cur_ambient = np.random.uniform(32.0, 42.0)       # Live IoT sensor: Ambient Temp (°C)
         
-        # Real-Time Telemetry Data Matrix Array from AP Grid Nodes 
+        # Compute Dynamic Safety Limit for this specific timestamp context
+        DYNAMIC_SAFE_CEILING = calculate_dynamic_ceiling(cur_ambient, cur_wind)
+        peak_hour_multiplier = 1.08 
+
+        # Unified Network Representation: Generation, Transmission, and Distribution Layers
         ap_grid_nodes = [ 
-            {"asset_id": "Simhadri_STPS_Transformer", "type": "wire", "temp_C": 101.0 + fluctuation + random_noise, "load_pct": (104.0 * peak_hour_multiplier) + fluctuation, "insulation_health": 42.10}, 
-            {"asset_id": "Vizag_Industrial_Feeder", "type": "wire", "temp_C": 98.0 - fluctuation + random_noise, "load_pct": (102.5 * peak_hour_multiplier) - fluctuation, "insulation_health": 32.50}, 
-            {"asset_id": "Vijayawada_Thermal_Link", "type": "wire", "temp_C": 103.0 + (fluctuation * 0.5), "load_pct": (107.0 * peak_hour_multiplier) + (fluctuation * 0.6), "insulation_health": 24.80}, 
-            {"asset_id": "Kurnool_Solar_Interconnect", "type": "wire", "temp_C": 44.0 + random_noise, "load_pct": 58.0 + fluctuation, "insulation_health": 93.00}, 
-            {"asset_id": "Rayalaseema_STPP_Line", "type": "wire", "temp_C": 46.0, "load_pct": 52.0, "insulation_health": 89.00}, 
-            {"asset_id": "Amaravati_Storage_BESS", "type": "bess", "temp_C": 27.5, "load_pct": 15.0, "insulation_health": 99.0} 
+            {"asset_id": "Simhadri_STPS_Gen_Unit1", "level": "Generation", "temp_C": 102.0 + fluctuation, "load_pct": (103.0 * peak_hour_multiplier) + fluctuation, "insulation_health": 41.5, "veg_distance_m": 15.0, "conductor_sag_cm": 0.0, "ambient_temp_C": cur_ambient}, 
+            {"asset_id": "Vijayawada_Thermal_Link", "level": "Generation", "temp_C": 104.5 + (fluctuation * 0.5), "load_pct": (106.5 * peak_hour_multiplier) + (fluctuation * 0.4), "insulation_health": 22.1, "veg_distance_m": 12.0, "conductor_sag_cm": 0.0, "ambient_temp_C": cur_ambient}, 
+            {"asset_id": "Rayalaseema_STPP_Line", "level": "Transmission", "temp_C": 52.0 + random_noise, "load_pct": 74.0 + fluctuation, "insulation_health": 82.0, "veg_distance_m": 2.1, "conductor_sag_cm": 38.5, "ambient_temp_C": cur_ambient}, 
+            {"asset_id": "Kurnool_Solar_Interconnect", "level": "Transmission", "temp_C": 44.0 + random_noise, "load_pct": 58.0 + fluctuation, "insulation_health": 93.0, "veg_distance_m": 8.5, "conductor_sag_cm": 12.0, "ambient_temp_C": cur_ambient}, 
+            {"asset_id": "Vizag_Industrial_Feeder", "level": "Distribution", "temp_C": 98.0 - fluctuation + random_noise, "load_pct": (101.5 * peak_hour_multiplier) - fluctuation, "insulation_health": 31.0, "veg_distance_m": 4.5, "conductor_sag_cm": 18.0, "ambient_temp_C": cur_ambient}, 
+            {"asset_id": "Amaravati_Storage_BESS", "level": "Distribution", "type": "bess", "temp_C": 26.5, "load_pct": 20.0, "insulation_health": 99.0, "veg_distance_m": 15.0, "conductor_sag_cm": 0.0, "ambient_temp_C": cur_ambient} 
         ] 
         
         live_grid_df = pd.DataFrame(ap_grid_nodes) 
         live_grid_df["timestamp"] = timestamp 
         
-        # Compute ML Wear Lifecycle Model Predictions over streaming variables 
-        live_grid_df["predicted_rul"] = ml_model.predict(live_grid_df[['temp_C', 'load_pct', 'insulation_health']]) 
+        # Execute ML Prediction over Multi-Modal Variables
+        live_grid_df["predicted_rul"] = ml_model.predict(live_grid_df[ml_features]) 
         
-        # Execute Network Control Load Balancing Algorithms
+        # Predictive Network Load Balancing Execution
         balanced_grid_df = live_grid_df.copy() 
-        stressed = balanced_grid_df[(balanced_grid_df["predicted_rul"] < ALERT_THRESHOLD) & (balanced_grid_df["type"] == "wire")] 
+        stressed = balanced_grid_df[(balanced_grid_df["predicted_rul"] < ALERT_THRESHOLD) & (balanced_grid_df["level"] != "Generation")] 
         
         for idx, row in stressed.iterrows(): 
             load_to_shed = row["load_pct"] - SAFE_BASE 
             while load_to_shed > 0.01: 
-                balanced_grid_df['headroom'] = SAFE_CEILING - balanced_grid_df['load_pct'] 
-                targets = balanced_grid_df[(balanced_grid_df["load_pct"] < SAFE_CEILING) & (balanced_grid_df["asset_id"] != row['asset_id'])] 
+                balanced_grid_df['headroom'] = DYNAMIC_SAFE_CEILING - balanced_grid_df['load_pct'] 
+                targets = balanced_grid_df[(balanced_grid_df["load_pct"] < DYNAMIC_SAFE_CEILING) & (balanced_grid_df["asset_id"] != row['asset_id'])] 
                 if targets.empty: 
                     break 
                 best_idx = targets['headroom'].idxmax() 
@@ -174,18 +113,33 @@ if run_pipeline:
                 balanced_grid_df.loc[idx, "load_pct"] -= transfer 
                 balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
                 load_to_shed -= transfer 
-                
-        # Process Live Financial Protection Variables 
+        
+        # Calculate Real-Time Ledger Values based on Grid Tier Classifications
         r_costs, p_costs = 0, 0 
-        for _, node in live_grid_df[(live_grid_df["predicted_rul"] < ALERT_THRESHOLD) & (live_grid_df["type"] == "wire")].iterrows(): 
-            eq_loss = COST_REPLACEMENT_TX if "STPS" in node["asset_id"] or "Thermal" in node["asset_id"] else COST_LINE_REPAIR 
+        field_dispatches = []
+        
+        for _, node in live_grid_df[live_grid_df["predicted_rul"] < ALERT_THRESHOLD].iterrows(): 
+            if node["level"] == "Generation":
+                eq_loss = COST_REPLACEMENT_GEN
+            elif "STPP" in node["asset_id"] or "Interconnect" in node["asset_id"]:
+                eq_loss = COST_REPLACEMENT_TX
+            else:
+                eq_loss = COST_LINE_REPAIR
+                
             r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
             p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
-        net_savings = r_costs - p_costs 
+            
+            # Generate Real-Time Machine-to-Field Guideline Objects
+            field_dispatches.append({
+                "asset_id": node["asset_id"],
+                "tier": node["level"],
+                "rul": node["predicted_rul"],
+                "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal."
+            })
+            
+        net_savings = max(0, r_costs - p_costs) 
         
-        # ===================================================================== 
-        # DATA STORAGE EXTRACTION SYSTEM (APPENDING TO CSV LOG) 
-        # ===================================================================== 
+        # Compile Comprehensive Data Logs for CSV Persistence
         log_df = live_grid_df.copy() 
         log_df["optimized_load_pct"] = balanced_grid_df["load_pct"] 
         log_df["reactive_risk_inr"] = r_costs 
@@ -193,59 +147,48 @@ if run_pipeline:
         log_df["net_saved_capital_inr"] = net_savings 
         
         log_columns = [ 
-            "timestamp", "asset_id", "type", "temp_C", "load_pct", 
-            "insulation_health", "predicted_rul", "optimized_load_pct", 
-            "reactive_risk_inr", "predictive_cost_inr", "net_saved_capital_inr" 
+            "timestamp", "asset_id", "level", "temp_C", "load_pct", 
+            "predicted_rul", "optimized_load_pct", "reactive_risk_inr", "net_saved_capital_inr" 
         ] 
         log_df = log_df[log_columns] 
-        
         if not os.path.isfile(CSV_FILE_PATH): 
             log_df.to_csv(CSV_FILE_PATH, index=False, mode='w') 
         else: 
             log_df.to_csv(CSV_FILE_PATH, index=False, mode='a', header=False) 
             
         # ===================================================================== 
-        # UPDATE LIVE STREAMLIT UI COMPONENTS 
+        # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
         # ===================================================================== 
-        placeholder_meta.markdown(f"⏱️ **SNAPSHOT TICK:** #{loop_count} &nbsp;|&nbsp; 🕒 **INDIAN STANDARD TIME (IST):** `{timestamp}` &nbsp;|&nbsp; ⚠️ **SAFE CEILING LIMIT:** `{SAFE_CEILING}% Load` &nbsp;|&nbsp; 🛑 **ALERT BOUNDARY:** `< {ALERT_THRESHOLD} Days RUL`")
+        clear_output(wait=True) 
+        print("=" * 110) 
+        print(f"⚡ APSPDCL/APTRANSCO INTEGRATED CONTROL MONITOR | TICK #{loop_count}") 
+        print(f"🕒 TIMESTAMP (IST): {timestamp} | DLR ENVIRONMENT: Wind {cur_wind:.1f} m/s, Amb {cur_ambient:.1f}°C")
+        print(f"🔒 ADAPTIVE DYNAMIC SAFETY CEILING LIMIT: {DYNAMIC_SAFE_CEILING:.1f}% Load Capacity")
+        print("=" * 110) 
+        print(f"{'Asset System ID':<28} | {'Grid Tier':<12} | {'Temp (°C)':<9} | {'Raw Load %':<10} | {'Opt Load %':<10} | {'Est RUL (Days)':<13}") 
+        print("-" * 110) 
         
-        # Style Dataframe rows conditionally based on dynamically adjusted RUL alert variable
-        def style_rows(row):
-            if row['predicted_rul'] < ALERT_THRESHOLD and row['type'] == 'wire':
-                return ['background-color: #ffcccc'] * len(row)
-            return [''] * len(row)
+        for _, row in log_df.iterrows(): 
+            print(f"{row['asset_id']:<28} | {row['level']:<12} | {row['temp_C']:<9.1f} | {row['load_pct']:<10.1f} | {row['optimized_load_pct']:<10.1f} | {row['predicted_rul']:<13.1f}") 
             
-        display_df = log_df.copy()
-        styled_df = display_df.style.apply(style_rows, axis=1).format({
-            'temp_C': '{:.2f}°C',
-            'load_pct': '{:.1f}%',
-            'optimized_load_pct': '{:.1f}%',
-            'predicted_rul': '{:.1f} Days'
-        })
+        print("-" * 110) 
+        print("🚨 REAL-TIME AI-ASSISTED FIELD DISPATCH & TECHNICIAN ALERTS INTERFACE")
+        if not field_dispatches:
+            print("  🎉 System Healthy. No active critical degradation vectors detected.")
+        else:
+        # Print active field alerts
+        for alert in field_dispatches:
+            print(f"  ⚡ [{alert['tier'].upper()} RISK] {alert['asset_id']} -> RUL: {alert['rul']:.1f} Days. Guidance: {alert['guidance']}")
+            
+        print("-" * 110)
+        print(f"💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
+        print(f"  ├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs:,.2f}")
+        print(f"  ├─ Managed AI Proactive Operations Cost      : ₹{p_costs:,.2f}")
+        print(f"  └─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings:,.2f}")
+        print("=" * 110)
+        print(" Pipeline executing smoothly. Persistent logs writing to 'ap_grid_unified_intelligence.csv'.")
         
-        placeholder_table.dataframe(styled_df, use_container_width=True, hide_index=True)
+        time.sleep(2.5)
         
-        # ===================================================================== 
-        # GENERATE INTERACTIVE TIME-SERIES LINE CHARTS 
-        # ===================================================================== 
-        try:
-            history_df = pd.read_csv(CSV_FILE_PATH)
-            load_history = history_df.pivot(index='timestamp', columns='asset_id', values='load_pct')
-            rul_history = history_df.pivot(index='timestamp', columns='asset_id', values='predicted_rul')
-            
-            placeholder_load_chart.markdown("**Live Real-Time Asset Load Percentage History Over Time (%)**")
-            placeholder_load_chart.line_chart(load_history.tail(30))
-            
-            placeholder_rul_chart.markdown("**ML Predicted Asset Remaining Useful Life (RUL - Days)**")
-            placeholder_rul_chart.line_chart(rul_history.tail(30))
-        except Exception:
-            pass 
-            
-        # Output financial ledger components onto active view layers
-        metric_risk.metric(label="Total Unmitigated Exposure Risk", value=f"₹{r_costs:,.2f}")
-        metric_cost.metric(label="Managed AI Operations Cost", value=f"₹{p_costs:,.2f}")
-        metric_savings.metric(label="NET Protected Public Savings", value=f"₹{net_savings:,.2f}")
-        
-        time.sleep(refresh_speed)
-else:
-    st.info("Ingestion Engine Paused. Toggle the switch on the sidebar to resume pipeline streaming loops.")
+except KeyboardInterrupt:
+    print(f"\n Unified multi-tier monitoring loop safely paused. All compiled metrics saved inside '{CSV_FILE_PATH}'.")
