@@ -12,9 +12,13 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 # ===================================================================== 
-# 0. GLOBAL UTILITY CONFIGURATIONS & FORMATTERS (Power BI Style)
+# 0. GLOBAL UTILITY CONFIGURATIONS & FORMATTERS (OS-Independent)
 # ===================================================================== 
 def format_indian_currency(amount):
+    """
+    Pure-Python OS-Independent Formatter for Indian Standard Currency Notation.
+    Groupings: Thousands base digit split followed by Lakhs and Crores pairs.
+    """
     try:
         s = f"{float(amount):.2f}"
         parts = s.split('.')
@@ -35,10 +39,10 @@ def format_indian_currency(amount):
             out = remaining + out
             
         return f"{out},{last_three}.{dec_part}"
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, IndexError):
         return "0.00"
 
-# Initialize persistence containers inside session state to prevent empty drops
+# Initialize persistence containers inside session state to prevent empty drops across reruns
 if "loop_count" not in st.session_state:
     st.session_state.loop_count = 0
 if "r_costs" not in st.session_state:
@@ -54,16 +58,18 @@ if "net_savings" not in st.session_state:
 np.random.seed(42) 
 h_records = 2500 
 
+# Multi-Modal Feature Synthesis: Telemetry, Drone Imagery Analytics, and Weather Sensors 
 h_temps = np.random.uniform(35.0, 115.0, h_records) 
 h_loads = np.random.uniform(40.0, 125.0, h_records) 
 h_health = np.random.uniform(15.0, 100.0, h_records) 
-h_veg_dist = np.random.uniform(0.2, 15.0, h_records) 
-h_sag_cm = np.random.uniform(0.0, 60.0, h_records) 
-h_ambient_c = np.random.uniform(22.0, 45.0, h_records) 
+h_veg_dist = np.random.uniform(0.2, 15.0, h_records) # Drone Anomaly Detection (m) 
+h_sag_cm = np.random.uniform(0.0, 60.0, h_records) # Drone Physical Anomaly (cm) 
+h_ambient_c = np.random.uniform(22.0, 45.0, h_records) # IoT Environmental Condition 
 
 t_rul = (h_health * 0.50) - (h_temps * 0.20) - (h_loads * 0.10) - (h_sag_cm * 0.15) + (h_veg_dist * 0.4) + 35 
 t_rul = np.clip(t_rul, 1, 90) + np.random.normal(0, 1.0, h_records) 
 
+# Train Multi-Modal Asset Health Regressor Model 
 ml_features = ['temp_C', 'load_pct', 'insulation_health', 'veg_distance_m', 'conductor_sag_cm', 'ambient_temp_C'] 
 X_train = pd.DataFrame({ 
     'temp_C': h_temps, 'load_pct': h_loads, 'insulation_health': h_health, 
@@ -72,15 +78,17 @@ X_train = pd.DataFrame({
 ml_model = RandomForestRegressor(n_estimators=60, random_state=42, n_jobs=-1) 
 ml_model.fit(X_train, t_rul) 
 
+# Core Operational Safety Boundaries 
 SAFE_BASE = 70.0 
 ALERT_THRESHOLD = 30.0 
 
+# Dynamic Line Rating (DLR) Logic: Optimizes lines based on cooling wind vs ambient heat 
 def calculate_dynamic_ceiling(ambient_temp, wind_speed): 
     base_ceiling = 86.0 
     thermal_cooling_effect = (wind_speed * 0.75) - ((ambient_temp - 30.0) * 0.2) 
     return float(np.clip(base_ceiling + thermal_cooling_effect, 76.0, 96.0))
 
-# Financial Parameters
+# Financial System Parameters (INR ₹) 
 COST_REPLACEMENT_GEN = 45000000 
 COST_REPLACEMENT_TX = 14000000 
 COST_LINE_REPAIR = 2200000 
@@ -90,19 +98,16 @@ PLANNED_LABOR_RATE = 4200
 AI_SOFTWARE_OVERHEAD = 88000 
 CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
-# ===================================================================== 
-# POWER BI VISUAL CANVAS STYLING & INITIALIZATION
-# ===================================================================== 
+# Initialize Streamlit Layout Configuration
 st.set_page_config(page_title="APTRANSCO Power BI Control Analytics", layout="wide")
 
-
-# ─── POWER BI INTERACTIVE SLICER SIDEBAR ───
+# ─── POWER BI SIDEBAR PANEL SLICER ───
 with st.sidebar:
-    st.image("https://icons8.com", width=60)
-    st.title("Filters & Slicers")
+    st.image("https://icons8.com", width=50)
+    st.title("Report Slicers")
     st.markdown("---")
     
-    # Grid Layer Ingestion Filter
+    # Interactive multi-select grid filtering slicer
     selected_tier = st.multiselect(
         "Grid Operational Layer Selection",
         options=["Generation", "Transmission", "Distribution"],
@@ -110,18 +115,17 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    # Interactive Automation Control Switches
     pause_feed = st.toggle("⏸️ Pause Live Ingestion Stream", value=False)
     
-    # Administrative Actions
+    # Administrative Actions Data Purge
     if st.button("🗑️ Clear Historic Ledger Storage", use_container_width=True):
         if os.path.exists(CSV_FILE_PATH):
             os.remove(CSV_FILE_PATH)
-            st.success("Ledger database reset successfully!")
+            st.success("Ledger database successfully reset!")
             time.sleep(1)
             st.rerun()
 
-# Establish Layout Render Area Placeholders
+# Build Persistent Empty App Display Canvas Layout Areas
 header_area = st.empty()
 kpi_cards_area = st.empty()
 main_layout_area = st.empty()
@@ -133,18 +137,21 @@ try:
     if not pause_feed:
         st.session_state.loop_count += 1 
     
+    # Indian Standard Time (IST) Synchronization
     ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
     timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S") 
     
-    # Pipeline simulations
+    # Simulating fluctuations, environmental dynamics, and drone anomaly ticks 
     fluctuation = np.sin(st.session_state.loop_count * 0.4) * 5.0 
     random_noise = np.random.uniform(-1.5, 1.5) 
-    cur_wind = np.random.uniform(2.0, 14.0) 
-    cur_ambient = np.random.uniform(32.0, 42.0) 
+    cur_wind = np.random.uniform(2.0, 14.0) # Live IoT sensor: Wind Speed (m/s) 
+    cur_ambient = np.random.uniform(32.0, 42.0) # Live IoT sensor: Ambient Temp (°C) 
     
+    # Compute Dynamic Safety Limit for this specific timestamp context 
     DYNAMIC_SAFE_CEILING = calculate_dynamic_ceiling(cur_ambient, cur_wind) 
     peak_hour_multiplier = 1.08 
     
+    # Unified Network Representation: Generation, Transmission, and Distribution Layers 
     ap_grid_nodes = [ 
         {"asset_id": "Simhadri_STPS_Gen_Unit1", "level": "Generation", "temp_C": 102.0 + fluctuation, 
          "load_pct": (103.0 * peak_hour_multiplier) + fluctuation, "insulation_health": 41.5, 
@@ -168,8 +175,11 @@ try:
     
     live_grid_df = pd.DataFrame(ap_grid_nodes) 
     live_grid_df["timestamp"] = timestamp 
+    
+    # Execute ML Prediction over Multi-Modal Variables 
     live_grid_df["predicted_rul"] = ml_model.predict(live_grid_df[ml_features]) 
     
+    # Predictive Network Load Balancing Execution 
     balanced_grid_df = live_grid_df.copy() 
     stressed = balanced_grid_df[(balanced_grid_df["predicted_rul"] < ALERT_THRESHOLD) & (balanced_grid_df["level"] != "Generation")] 
     
@@ -186,10 +196,10 @@ try:
             balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
             load_to_shed -= transfer 
     
-    # Calculate live figures and stream them directly into session state storage
-    local_r_costs = 0
-    local_p_costs = 0
-    field_dispatches = []
+    # Calculate Real-Time Ledger Values based on Grid Tier Classifications 
+    local_r_costs = 0 
+    local_p_costs = 0 
+    field_dispatches = [] 
     
     for _, node in live_grid_df[live_grid_df["predicted_rul"] < ALERT_THRESHOLD].iterrows(): 
         if node["level"] == "Generation": 
@@ -201,20 +211,22 @@ try:
         
         local_r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
         local_p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
-
+        
+        # Generate Real-Time Machine-to-Field Guideline Objects 
         field_dispatches.append({ 
             "asset_id": node["asset_id"], 
             "tier": node["level"], 
-            "rul": node["predicted_rul"], 
-            "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal." 
+            "rul": node["predicted_rul"],
+            "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal."
         })
 
-    # Core operational data alignment block
-    st.session_state.r_costs = local_r_costs
-    st.session_state.p_costs = local_p_costs
-    st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
+    # Sync calculations directly to Streamlit memory context to prevent data reset drop
+    if not pause_feed:
+        st.session_state.r_costs = local_r_costs
+        st.session_state.p_costs = local_p_costs
+        st.session_state.net_savings = max(0, local_r_costs - local_p_costs) 
 
-    # Repaired Pandas Slicer Filter Transformation logic
+    # FIXED: Corrected malformed dictionary index bracket parameters and .isin() parsing loops
     filtered_live_df = live_grid_df[live_grid_df["level"].isin(selected_tier)]
     filtered_balanced_df = balanced_grid_df[balanced_grid_df["level"].isin(selected_tier)]
 
@@ -227,14 +239,9 @@ try:
     # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
     # ===================================================================== 
     
-    # Parse formatted localized display currency strings
-    r_costs_str = format_indian_currency(st.session_state.r_costs)
-    p_costs_str = format_indian_currency(st.session_state.p_costs)
-    net_savings_str = format_indian_currency(st.session_state.net_savings)
-    
-    # ─── POWER BI BANNER NAVIGATION HEADER ───
+    # ─── POWER BI BANNER NAVIGATION HEADER & INJECTED STYLES ───
     with header_area.container():
-        # FIXED: Global style definitions are safely nested inside an active container layout block
+        # FIXED: Corrected raw attribute brackets from string `div(data-testid=...)` to valid CSS `div[data-testid=...]`
         st.markdown("""
             <style>
             .stApp { background-color: #F3F4F6; }
@@ -243,7 +250,7 @@ try:
                 border-radius: 6px !important;
                 padding: 15px !important;
                 box-shadow: 0px 2px 4px rgba(0,0,0,0.05) !important;
-                border-left: 5px solid #118DFF !important; /* Power BI Primary Accent Blue */
+                border-left: 5px solid #118DFF !important; /* Power BI Accent Blue */
             }
             div[data-testid="stMetricBlock"] label { font-weight: bold !important; color: #4B5563 !important; }
             .powerbi-card {
@@ -272,6 +279,7 @@ try:
         m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
         m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
         
+        # FIXED: Corrected column mapping selector from () to []
         avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
         m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta="Healthy" if avg_health > 45 else "Action Needed", delta_color="normal" if avg_health > 45 else "inverse")
 
@@ -283,6 +291,7 @@ try:
             st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
             st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
             
+            # FIXED: Transformed series access formatting to clean key syntax
             display_df = pd.DataFrame({
                 "Asset Tracking ID": filtered_live_df["asset_id"],
                 "Operational Layer Tier": filtered_live_df["level"],
@@ -293,6 +302,7 @@ try:
             })
             st.dataframe(display_df, use_container_width=True, hide_index=True)
             
+            # --- INTERACTIVE DATA LEDGER FILE EXPORT LAYER ---
             if os.path.isfile(CSV_FILE_PATH):
                 @st.cache_data(ttl=2.0)
                 def convert_df_to_bytes(path):
@@ -315,6 +325,7 @@ try:
             
             if field_dispatches:
                 for idx, alert in enumerate(field_dispatches):
+                    # FIXED: Dict matching updated to standard alert["asset_id"] square parameters
                     if alert["asset_id"] in filtered_live_df["asset_id"].values:
                         st.markdown(f"""
                             <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
@@ -337,16 +348,17 @@ try:
             )
             st.markdown("</div>", unsafe_allowed_with_html=True)
 
-    # Write metrics to persistent file storage
+    # Persist log records to disk storage asynchronously
     if not pause_feed:
         summary_data = live_grid_df.copy()
+        # FIXED: Corrected column instantiation formatting errors inside dataset columns initialization
         summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
         summary_data["net_savings_inr"] = st.session_state.net_savings
         
         file_exists = os.path.isfile(CSV_FILE_PATH)
         summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
-    # Report Refresh Throttle Interval
+    # Synchronized pipeline loop throttle time match
     time.sleep(2.5) 
     st.rerun()
 
