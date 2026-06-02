@@ -226,7 +226,7 @@ try:
         st.session_state.p_costs = local_p_costs
         st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
 
-    # FIXED: Corrected syntax errors in Pandas Slicer Filter Transformation logic (.isin layout formatting)
+    # Apply Slicer Filters onto active displayed collections
     filtered_live_df = live_grid_df[live_grid_df["level"].isin(selected_tier)]
     filtered_balanced_df = balanced_grid_df[balanced_grid_df["level"].isin(selected_tier)]
 
@@ -238,10 +238,10 @@ try:
     # =====================================================================
     # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW
     # =====================================================================
-
+    
     # ─── POWER BI BANNER NAVIGATION HEADER & INJECTED STYLES ───
     with header_area.container():
-        # FIXED: Set parameters explicitly to 'unsafe_allow_html=True' and corrected attribute syntax to div[data-testid=...]
+        # FIXED ALL TYPOS: Set explicitly to 'unsafe_allow_html=True' parameters
         st.markdown("""
             <style>
             .stApp { background-color: #F3F4F6; }
@@ -279,16 +279,27 @@ try:
         m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
         m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
         
-        # FIXED: Corrected column mapping accessor syntax from series parentheses () to brackets []
         avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
         m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta="Healthy" if avg_health > 45 else "Action Needed", delta_color="normal" if avg_health > 45 else "inverse")
 
     # ─── POWER BI CENTRAL DASHBOARD LAYOUT ───
     with main_layout_area.container():
         left_panel, right_panel = st.columns((5, 3))
+        
         with left_panel:
             st.markdown("<div class='powerbi-card'>", unsafe_allow_html=True)
             st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
+            
+            display_df = pd.DataFrame({
+                "Asset Tracking ID": filtered_live_df["asset_id"],
+                "Operational Layer Tier": filtered_live_df["level"],
+                "Thermal Telemetry (°C)": filtered_live_df["temp_C"].round(1),
+                "Raw Demand Load %": filtered_live_df["load_pct"].round(2),
+                "AI Optimized Load %": filtered_balanced_df["load_pct"].round(2),
+                "Est. Health RUL (Days)": filtered_live_df["predicted_rul"].round(1)
+            })
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
             # --- INTERACTIVE DATA LEDGER FILE EXPORT LAYER ---
             if os.path.isfile(CSV_FILE_PATH):
                 @st.cache_data(ttl=2.0)
@@ -313,7 +324,6 @@ try:
             if field_dispatches:
                 for idx, alert in enumerate(field_dispatches):
                     if alert["asset_id"] in filtered_live_df["asset_id"].values:
-                        # FIXED: Changed invalid 'unsafe_allowed_with_html' to valid 'unsafe_allow_html'
                         st.markdown(f"""
                             <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
                                 <strong style="color: #991B1B;">⚠️ {alert['asset_id']}</strong><br/>
@@ -345,11 +355,8 @@ try:
         summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
     # Synchronized pipeline loop throttle time match
-    time.sleep(2.5) 
+    time.sleep(2.5)
     st.rerun()
 
-# =====================================================================
-# CRITICAL STRUCTURAL CLOSURE (Satisfies Python Syntax rules for Section 2 try block)
-# =====================================================================
 except Exception as pipeline_error:
     st.error(f"Power BI Report engine processing error encountered: {pipeline_error}")
