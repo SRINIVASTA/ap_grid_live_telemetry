@@ -313,6 +313,7 @@ try:
             if field_dispatches:
                 for idx, alert in enumerate(field_dispatches):
                     if alert["asset_id"] in filtered_live_df["asset_id"].values:
+                        # FIXED: Changed invalid 'unsafe_allowed_with_html' to valid 'unsafe_allow_html'
                         st.markdown(f"""
                             <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
                                 <strong style="color: #991B1B;">⚠️ {alert['asset_id']}</strong><br/>
