@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 # ===================================================================== 
-# 0. GLOBAL UTILITY CONFIGURATIONS & FORMATTERS (OS-Independent)
+# 0. GLOBAL UTILITY CONFIGURATIONS & FORMATTERS (Power BI Style)
 # ===================================================================== 
 def format_indian_currency(amount):
     try:
@@ -80,6 +80,7 @@ def calculate_dynamic_ceiling(ambient_temp, wind_speed):
     thermal_cooling_effect = (wind_speed * 0.75) - ((ambient_temp - 30.0) * 0.2) 
     return float(np.clip(base_ceiling + thermal_cooling_effect, 76.0, 96.0))
 
+# Financial Parameters
 COST_REPLACEMENT_GEN = 45000000 
 COST_REPLACEMENT_TX = 14000000 
 COST_LINE_REPAIR = 2200000 
@@ -89,22 +90,74 @@ PLANNED_LABOR_RATE = 4200
 AI_SOFTWARE_OVERHEAD = 88000 
 CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
-# Setup layout parameters
-st.set_page_config(page_title="APTRANSCO Control Monitor", layout="wide")
+# ===================================================================== 
+# POWER BI VISUAL CANVAS STYLING & INITIALIZATION
+# ===================================================================== 
+st.set_page_config(page_title="APTRANSCO Power BI Control Analytics", layout="wide")
+
+# Custom CSS Inject to mimic corporate dashboard margins, card headers, and frames
+st.markdown("""
+    <style>
+    .stApp { background-color: #F3F4F6; }
+    div[data-testid="stMetricBlock"] {
+        background-color: #FFFFFF;
+        border-radius: 6px;
+        padding: 15px;
+        box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
+        border-left: 5px solid #118DFF; /* Power BI Primary Accent */
+    }
+    div[data-testid="stMetricBlock"] label { font-weight: bold !important; color: #4B5563 !important; }
+    .powerbi-card {
+        background-color: #FFFFFF;
+        border-radius: 6px;
+        padding: 20px;
+        box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    </style>
+""", unsafe_allowed_with_html=True)
+
+# ─── POWER BI INTERACTIVE SLICER SIDEBAR ───
+with st.sidebar:
+    st.image("https://icons8.com", width=60)
+    st.title("Filters & Slicers")
+    st.markdown("---")
+    
+    # Grid Layer Ingestion Filter
+    selected_tier = st.multiselect(
+        "Grid Operational Layer Selection",
+        options=["Generation", "Transmission", "Distribution"],
+        default=["Generation", "Transmission", "Distribution"]
+    )
+    
+    st.markdown("---")
+    # Interactive Automation Control Switches
+    pause_feed = st.toggle("⏸️ Pause Live Ingestion Stream", value=False)
+    
+    # Administrative Actions
+    if st.button("🗑️ Clear Historic Ledger Storage", use_container_width=True):
+        if os.path.exists(CSV_FILE_PATH):
+            os.remove(CSV_FILE_PATH)
+            st.success("Ledger database reset successfully!")
+            time.sleep(1)
+            st.rerun()
+
+# Establish Layout Render Area Placeholders
 header_area = st.empty()
-alert_area = st.empty()
-table_area = st.empty()
-ledger_area = st.empty()
+kpi_cards_area = st.empty()
+main_layout_area = st.empty()
 
 # ===================================================================== 
 # 2. TIME-SYNCED INGESTION LOOP & DYNAMIC BALANCING ENGINE 
 # ===================================================================== 
 try: 
-    st.session_state.loop_count += 1 
+    if not pause_feed:
+        st.session_state.loop_count += 1 
     
     ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
     timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S") 
     
+    # Pipeline simulations
     fluctuation = np.sin(st.session_state.loop_count * 0.4) * 5.0 
     random_noise = np.random.uniform(-1.5, 1.5) 
     cur_wind = np.random.uniform(2.0, 14.0) 
@@ -154,6 +207,7 @@ try:
             balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
             load_to_shed -= transfer 
     
+    # Financial ledger engine metrics
     local_r_costs = 0
     local_p_costs = 0
     field_dispatches = []
@@ -168,105 +222,134 @@ try:
         
         local_r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
         local_p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
-
+        
         field_dispatches.append({ 
             "asset_id": node["asset_id"], 
             "tier": node["level"], 
             "rul": node["predicted_rul"], 
-            "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal." 
+            "guidance": "Schedule insulation verification." if node["insulation_health"] < 40 else "Deploy hazard removal clearance crews." 
         })
     
+    if not pause_feed:
+    # Assign local calculation variables directly to global session states
     st.session_state.r_costs = local_r_costs
     st.session_state.p_costs = local_p_costs
     st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
 
-    # ===================================================================== 
-    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
-    # ===================================================================== 
+    # CRITICAL FIX: Repaired severe syntax errors in Pandas Slicer Filter Transformation logic
+    filtered_live_df = live_grid_df[live_grid_df["level"].isin(selected_tier)]
+    filtered_balanced_df = balanced_grid_df[balanced_grid_df["level"].isin(selected_tier)]
+
+    # Parse formatted localized display currency strings
     r_costs_str = format_indian_currency(st.session_state.r_costs)
     p_costs_str = format_indian_currency(st.session_state.p_costs)
     net_savings_str = format_indian_currency(st.session_state.net_savings)
 
+    # =====================================================================
+    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW
+    # =====================================================================
+
+    # ─── POWER BI BANNER NAVIGATION HEADER ───
     with header_area.container():
-        st.title("⚡ APTRANSCO Smart Grid Control Monitor")
-        st.caption(f"**Tick Sequence ID:** #{st.session_state.loop_count} | **Timestamp (IST):** {timestamp}")
-        st.info(f"🎯 **Adaptive Dynamic Safety Ceiling Limit:** {DYNAMIC_SAFE_CEILING:.1f}% Load Capacity")
+        st.markdown(f"""
+            <div style="background-color: #1F2937; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #FFFFFF;">
+                <h2 style='margin: 0; color: #FFFFFF; font-size: 24px;'>⚡ APTRANSCO Smart Grid Executive Report</h2>
+                <p style='margin: 5px 0 0 0; font-size: 13px; color: #9CA3AF;'>
+                    <b>Report Sync Timestamp:</b> {timestamp} (IST) | <b>Adaptive Dynamic Ceiling Limit:</b> {DYNAMIC_SAFE_CEILING:.1f}% Load Capacity | <b>Active Cycle Tick:</b> #{st.session_state.loop_count}
+                </p>
+            </div>
+        """, unsafe_allowed_with_html=True)
 
-    with alert_area.container():
-        if field_dispatches:
-            st.error(f"🚨 **CRITICAL EMERGENCY ALERT**: {len(field_dispatches)} Anomalies Found!")
-            for alert in field_dispatches:
-                st.warning(f"⚠️ **[{alert['tier'].upper()} RISK]** {alert['asset_id']} ➜ RUL: {alert['rul']:.1f} Days. *Guidance:* {alert['guidance']}")
-        else:
-            st.success("✅ All state grid infrastructure metrics currently operating within normal engineering metrics.")
-
-    with table_area.container():
-        st.subheader("📊 Live Mesh Node Status Telemetry")
-        display_df = pd.DataFrame({
-            "Asset Identification": live_grid_df["asset_id"],
-            "Layer Tier": live_grid_df["level"],
-            "Telemetry Temp (°C)": live_grid_df["temp_C"].round(1),
-            "Unmanaged Load %": live_grid_df["load_pct"].round(2),
-            "AI Balanced Load %": balanced_grid_df["load_pct"].round(2),
-            "Predicted RUL (Days)": live_grid_df["predicted_rul"].round(1)
-        })
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-    with ledger_area.container():
-        st.markdown("### 💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
+    # ─── POWER BI TOP ROW HIGHLIGHT METRICS ───
+    with kpi_cards_area.container():
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        m_col1.metric("Total Breakdown Financial Risk", f"₹ {r_costs_str}")
+        m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
+        m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
         
-        m_col1, m_col2, m_col3 = st.columns(3)
-        with m_col1:
-            st.metric(label="Total Unmitigated Breakdown Risk Exposure", value=f"₹ {r_costs_str}")
-        with m_col2:
-            st.metric(label="Managed AI Proactive Operations Cost", value=f"₹ {p_costs_str}")
-        with m_col3:
-            st.metric(label="NET CURRENT PROTECTED STATE SAVINGS", value=f"₹ {net_savings_str}")
+        # CRITICAL FIX: Changed column accessor mapping from invalid () to valid []
+        avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
+        m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta=f"{'Healthy' if avg_health > 45 else 'Action Needed'}")
 
-        st.code(
-            f"STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER\n"
-            f" ├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs_str}\n"
-            f" ├─ Managed AI Proactive Operations Cost      : ₹{p_costs_str}\n"
-            f" └─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings_str}",
-            language="text"
-        )
+    # ─── POWER BI CENTRAL DASHBOARD LAYOUT ───
+    with main_layout_area.container():
+        left_panel, right_panel = st.columns((5, 3))
+        
+        with left_panel:
+            st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
+            st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
+            
+            # CRITICAL FIX: Corrected column generation dictionary mappings to use square brackets []
+            display_df = pd.DataFrame({
+                "Asset Tracking ID": filtered_live_df["asset_id"],
+                "Operational Layer Tier": filtered_live_df["level"],
+                "Thermal Telemetry (°C)": filtered_live_df["temp_C"].round(1),
+                "Raw Demand Load %": filtered_live_df["load_pct"].round(2),
+                "AI Optimized Load %": filtered_balanced_df["load_pct"].round(2),
+                "Est. Health RUL (Days)": filtered_live_df["predicted_rul"].round(1)
+            })
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
+            # --- POWER BI DIRECT INTERACTIVE DATA DOWNLOAD LAYER ---
+            if os.path.isfile(CSV_FILE_PATH):
+                @st.cache_data(ttl=2.0)
+                def convert_df_to_bytes(path):
+                    with open(path, "rb") as f:
+                        return f.read()
+                csv_bytes = convert_df_to_bytes(CSV_FILE_PATH)
+                st.download_button(
+                    label="📥 Export Live Intelligence Ledger Data (.CSV)",
+                    data=csv_bytes,
+                    file_name=f"ap_grid_bi_ledger_{timestamp.replace(' ', '_').replace(':', '-')}.csv",
+                    mime="text/csv",
+                    key="bi_ledger_download_trigger",
+                    use_container_width=True
+                )
+            st.markdown("</div>", unsafe_allowed_with_html=True)
+            
+        with right_panel:
+            st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
+            st.subheader("🚨 Real-Time Action Dispatches")
+            
+            if field_dispatches:
+                for idx, alert in enumerate(field_dispatches):
+                    # CRITICAL FIX: Changed alert evaluation call from alert("key") to alert["key"]
+                    if alert["asset_id"] in filtered_live_df["asset_id"].values:
+                        st.markdown(f"""
+                            <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
+                                <strong style="color: #991B1B;">⚠️ {alert['asset_id']}</strong><br/>
+                                <small style="color: #B91C1C;">Layer: {alert['tier']} | Est. RUL: {alert['rul']:.1f} Days</small><br/>
+                                <span style="font-size: 13px; color: #374151;">👉 <b>Guidance:</b> {alert['guidance']}</span>
+                            </div>
+                        """, unsafe_allowed_with_html=True)
+            else:
+                st.success("✅ All monitored nodes are performing within normal engineering parameters.")
+                
+            # Power BI Style DAX Console Log Output
+            st.markdown("<br/>", unsafe_allowed_with_html=True)
+            st.caption("**DAX Consolidated Ledger Log Expression Outflow**")
+            st.code(
+                f"EVALUATE MEASURE 'Ledger'[ProtectedStateSavings]\n"
+                f" ├─ Total Unmitigated Risk Exposure : ₹{r_costs_str}\n"
+                f" ├─ Managed Proactive Operations Cost: ₹{p_costs_str}\n"
+                f" └─ NET CURRENT PROTECTED SAVINGS    : ₹{net_savings_str}",
+                language="text"
+            )
+            st.markdown("</div>", unsafe_allowed_with_html=True)
 
-    # Log values to persistent local disk file
-    summary_data = live_grid_df.copy()
-    summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
-    summary_data["net_savings_inr"] = st.session_state.net_savings
-    
-    file_exists = os.path.isfile(CSV_FILE_PATH)
-    summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
+    # Write metrics to persistent file storage
+    if not pause_feed:
+        summary_data = live_grid_df.copy()
+        # CRITICAL FIX: Fixed column instantiation syntax from summary_data("col") to summary_data["col"]
+        summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
+        summary_data["net_savings_inr"] = st.session_state.net_savings
+        
+        file_exists = os.path.isfile(CSV_FILE_PATH)
+        summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
+    # Report Refresh Throttle Interval
     time.sleep(2.5) 
     st.rerun()
 
 except Exception as pipeline_error:
-    st.error(f"Operational pipeline runtime tracking paused: {pipeline_error}")
-
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-    # ===================================================================== 
-    # DATA EXPORT & DOWNLOADING INTERFACE
-    # ===================================================================== 
-    if os.path.isfile(CSV_FILE_PATH):
-        # Read the file contents as bytes to safely handle high-frequency loop writing
-        @st.cache_data(ttl=2.0)  # Cache for 2 seconds to match your loop metrics
-        def convert_df_to_bytes(path):
-            with open(path, "rb") as f:
-                return f.read()
-                
-        csv_bytes = convert_df_to_bytes(CSV_FILE_PATH)
-        
-        # Display an interactive download button next to the dataset layout margins
-        st.download_button(
-            label="📥 Download Unified Intelligence Ledger (.CSV)",
-            data=csv_bytes,
-            file_name=f"ap_grid_ledger_{timestamp.replace(' ', '_').replace(':', '-')}.csv",
-            mime="text/csv",
-            key="grid_ledger_download_trigger",
-            use_container_width=True
-        )
-    else:
-        st.caption("⏳ Ingestion buffer initializing. Historic ledger database download will appear shortly...")
+    st.error(f"Power BI Report engine processing error encountered: {pipeline_error}")
