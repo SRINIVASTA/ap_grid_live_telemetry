@@ -244,3 +244,29 @@ try:
 
 except Exception as pipeline_error:
     st.error(f"Operational pipeline runtime tracking paused: {pipeline_error}")
+
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    # ===================================================================== 
+    # DATA EXPORT & DOWNLOADING INTERFACE
+    # ===================================================================== 
+    if os.path.isfile(CSV_FILE_PATH):
+        # Read the file contents as bytes to safely handle high-frequency loop writing
+        @st.cache_data(ttl=2.0)  # Cache for 2 seconds to match your loop metrics
+        def convert_df_to_bytes(path):
+            with open(path, "rb") as f:
+                return f.read()
+                
+        csv_bytes = convert_df_to_bytes(CSV_FILE_PATH)
+        
+        # Display an interactive download button next to the dataset layout margins
+        st.download_button(
+            label="📥 Download Unified Intelligence Ledger (.CSV)",
+            data=csv_bytes,
+            file_name=f"ap_grid_ledger_{timestamp.replace(' ', '_').replace(':', '-')}.csv",
+            mime="text/csv",
+            key="grid_ledger_download_trigger",
+            use_container_width=True
+        )
+    else:
+        st.caption("⏳ Ingestion buffer initializing. Historic ledger database download will appear shortly...")
