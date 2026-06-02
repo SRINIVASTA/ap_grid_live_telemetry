@@ -57,10 +57,10 @@ PLANNED_LABOR_RATE = 4200
 AI_SOFTWARE_OVERHEAD = 88000 
 CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
-# Initialize Streamlit Page Window Layout Look and Feel
-st.set_page_config(page_title="APSPDCL/APTRANSCO Control Monitor", layout="wide")
+# Initialize Streamlit Layout Configuration
+st.set_page_config(page_title="APTRANSCO Control Monitor", layout="wide")
 
-# Persistent Dynamic Web Element Shell Placeholders
+# Persistent Dynamic Web Element Containers
 header_area = st.empty()
 table_area = st.empty()
 alert_area = st.empty()
@@ -74,7 +74,7 @@ try:
     while True: 
         loop_count += 1 
         
-        # Indian Standard Time (IST) Synchronization (Fixes Deprecation Warning)
+        # Indian Standard Time (IST) Synchronization
         ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
         timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S") 
         
@@ -195,7 +195,7 @@ try:
                 st.success("✅ Operational System Healthy. No critical asset degradations found.")
             else:
                 for alert in field_dispatches:
-                    # FIXED: Changed broken functional alert(...) parentheses back to dictionary lookup brackets alert[...]
+                    # FIXED: Changed broken alert(...) function calls to explicit valid dictionary lookup syntax alert[...]
                     st.error(f"[{alert['tier'].upper()} RISK] {alert['asset_id']} — Remaining Useful Life: {alert['rul']:.1f} Days\n\n👉 Guidance: {alert['guidance']}")
             st.markdown("---")
 
@@ -203,9 +203,9 @@ try:
         with ledger_area.container():
             st.subheader("💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
             
-            # FIXED: Wrapped in an HTML pre-formatted monospace tag to preserve your tree alignments perfectly
+            # FIXED: Enclosed the string inside an HTML <pre> monospace container block to preserve spacing and line breaks
             ledger_html = f"""
-            <pre style="font-family: monospace; background-color: #1e1e1e; padding: 15px; border-radius: 5px; color: #ffffff; font-size: 14px; line-height: 1.5;">
+            <pre style="font-family: monospace; background-color: #1e1e1e; padding: 15px; border-radius: 5px; color: #ffffff; font-size: 14px; line-height: 1.6; margin: 0;">
 ├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs:,.2f}
 ├─ Managed AI Proactive Operations Cost      : ₹{p_costs:,.2f}
 └─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings:,.2f}
