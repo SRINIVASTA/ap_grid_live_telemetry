@@ -224,9 +224,9 @@ try:
     if not pause_feed:
         st.session_state.r_costs = local_r_costs
         st.session_state.p_costs = local_p_costs
-        st.session_state.net_savings = max(0, local_r_costs - local_p_costs) 
+        st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
 
-    # FIXED: Corrected malformed dictionary index bracket parameters and .isin() parsing loops
+    # FIXED: Corrected syntax errors in Pandas Slicer Filter Transformation logic (.isin layout formatting)
     filtered_live_df = live_grid_df[live_grid_df["level"].isin(selected_tier)]
     filtered_balanced_df = balanced_grid_df[balanced_grid_df["level"].isin(selected_tier)]
 
@@ -235,13 +235,13 @@ try:
     p_costs_str = format_indian_currency(st.session_state.p_costs)
     net_savings_str = format_indian_currency(st.session_state.net_savings)
 
-    # ===================================================================== 
-    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
-    # ===================================================================== 
-    
+    # =====================================================================
+    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW
+    # =====================================================================
+
     # ─── POWER BI BANNER NAVIGATION HEADER & INJECTED STYLES ───
     with header_area.container():
-        # FIXED: Corrected raw attribute brackets from string `div(data-testid=...)` to valid CSS `div[data-testid=...]`
+        # FIXED: Set parameters explicitly to 'unsafe_allow_html=True' and corrected attribute syntax to div[data-testid=...]
         st.markdown("""
             <style>
             .stApp { background-color: #F3F4F6; }
@@ -261,7 +261,7 @@ try:
                 margin-bottom: 20px;
             }
             </style>
-        """, unsafe_allowed_with_html=True)
+        """, unsafe_allow_html=True)
 
         st.markdown(f"""
             <div style="background-color: #1F2937; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #FFFFFF;">
@@ -270,7 +270,7 @@ try:
                     <b>Report Sync Timestamp:</b> {timestamp} (IST) | <b>Adaptive Dynamic Ceiling Limit:</b> {DYNAMIC_SAFE_CEILING:.1f}% Load Capacity | <b>Active Cycle Tick:</b> #{st.session_state.loop_count}
                 </p>
             </div>
-        """, unsafe_allowed_with_html=True)
+        """, unsafe_allow_html=True)
 
     # ─── POWER BI TOP ROW HIGHLIGHT METRICS ───
     with kpi_cards_area.container():
@@ -279,88 +279,13 @@ try:
         m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
         m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
         
-        # FIXED: Corrected column mapping selector from () to []
+        # FIXED: Corrected column mapping accessor syntax from series parentheses () to brackets []
         avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
         m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta="Healthy" if avg_health > 45 else "Action Needed", delta_color="normal" if avg_health > 45 else "inverse")
 
     # ─── POWER BI CENTRAL DASHBOARD LAYOUT ───
     with main_layout_area.container():
         left_panel, right_panel = st.columns((5, 3))
-        
         with left_panel:
-            st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
+            st.markdown("<div class='powerbi-card'>", unsafe_allow_html=True)
             st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
-            
-            # FIXED: Transformed series access formatting to clean key syntax
-            display_df = pd.DataFrame({
-                "Asset Tracking ID": filtered_live_df["asset_id"],
-                "Operational Layer Tier": filtered_live_df["level"],
-                "Thermal Telemetry (°C)": filtered_live_df["temp_C"].round(1),
-                "Raw Demand Load %": filtered_live_df["load_pct"].round(2),
-                "AI Optimized Load %": filtered_balanced_df["load_pct"].round(2),
-                "Est. Health RUL (Days)": filtered_live_df["predicted_rul"].round(1)
-            })
-            st.dataframe(display_df, use_container_width=True, hide_index=True)
-            
-            # --- INTERACTIVE DATA LEDGER FILE EXPORT LAYER ---
-            if os.path.isfile(CSV_FILE_PATH):
-                @st.cache_data(ttl=2.0)
-                def convert_df_to_bytes(path):
-                    with open(path, "rb") as f:
-                        return f.read()
-                csv_bytes = convert_df_to_bytes(CSV_FILE_PATH)
-                st.download_button(
-                    label="📥 Export Live Intelligence Ledger Data (.CSV)",
-                    data=csv_bytes,
-                    file_name=f"ap_grid_bi_ledger_{timestamp.replace(' ', '_').replace(':', '-')}.csv",
-                    mime="text/csv",
-                    key="bi_ledger_download_trigger",
-                    use_container_width=True
-                )
-            st.markdown("</div>", unsafe_allowed_with_html=True)
-            
-        with right_panel:
-            st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
-            st.subheader("🚨 Real-Time Action Dispatches")
-            
-            if field_dispatches:
-                for idx, alert in enumerate(field_dispatches):
-                    # FIXED: Dict matching updated to standard alert["asset_id"] square parameters
-                    if alert["asset_id"] in filtered_live_df["asset_id"].values:
-                        st.markdown(f"""
-                            <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
-                                <strong style="color: #991B1B;">⚠️ {alert['asset_id']}</strong><br/>
-                                <small style="color: #B91C1C;">Layer: {alert['tier']} | Est. RUL: {alert['rul']:.1f} Days</small><br/>
-                                <span style="font-size: 13px; color: #374151;">👉 <b>Guidance:</b> {alert['guidance']}</span>
-                            </div>
-                        """, unsafe_allowed_with_html=True)
-            else:
-                st.success("✅ All monitored nodes are performing within normal engineering parameters.")
-                
-            st.markdown("<br/>", unsafe_allowed_with_html=True)
-            st.caption("**DAX Consolidated Ledger Log Expression Outflow**")
-            st.code(
-                f"EVALUATE MEASURE 'Ledger'[ProtectedStateSavings]\n"
-                f" ├─ Total Unmitigated Risk Exposure : ₹{r_costs_str}\n"
-                f" ├─ Managed Proactive Operations Cost: ₹{p_costs_str}\n"
-                f" └─ NET CURRENT PROTECTED SAVINGS    : ₹{net_savings_str}",
-                language="text"
-            )
-            st.markdown("</div>", unsafe_allowed_with_html=True)
-
-    # Persist log records to disk storage asynchronously
-    if not pause_feed:
-        summary_data = live_grid_df.copy()
-        # FIXED: Corrected column instantiation formatting errors inside dataset columns initialization
-        summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
-        summary_data["net_savings_inr"] = st.session_state.net_savings
-        
-        file_exists = os.path.isfile(CSV_FILE_PATH)
-        summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
-
-    # Synchronized pipeline loop throttle time match
-    time.sleep(2.5) 
-    st.rerun()
-
-except Exception as pipeline_error:
-    st.error(f"Power BI Report engine processing error encountered: {pipeline_error}")
