@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 # ===================================================================== 
-# 0. GLOBAL UTILITY FUNCTIONS (Placed cleanly outside try-except blocks)
+# 0. GLOBAL UTILITY CONFIGURATIONS & FORMATTERS (OS-Independent)
 # ===================================================================== 
 def format_indian_currency(amount):
     try:
@@ -38,6 +38,15 @@ def format_indian_currency(amount):
     except (ValueError, TypeError):
         return "0.00"
 
+# Initialize persistence containers inside session state to prevent empty drops
+if "loop_count" not in st.session_state:
+    st.session_state.loop_count = 0
+if "r_costs" not in st.session_state:
+    st.session_state.r_costs = 0.0
+if "p_costs" not in st.session_state:
+    st.session_state.p_costs = 0.0
+if "net_savings" not in st.session_state:
+    st.session_state.net_savings = 0.0
 
 # ===================================================================== 
 # 1. CORE PIPELINE INITIALIZATION (MULTI-MODAL ML TRAINING) 
@@ -45,18 +54,16 @@ def format_indian_currency(amount):
 np.random.seed(42) 
 h_records = 2500 
 
-# Multi-Modal Feature Synthesis: Telemetry, Drone Imagery Analytics, and Weather Sensors 
 h_temps = np.random.uniform(35.0, 115.0, h_records) 
 h_loads = np.random.uniform(40.0, 125.0, h_records) 
 h_health = np.random.uniform(15.0, 100.0, h_records) 
-h_veg_dist = np.random.uniform(0.2, 15.0, h_records) # Drone Anomaly Detection (m) 
-h_sag_cm = np.random.uniform(0.0, 60.0, h_records) # Drone Physical Anomaly (cm) 
-h_ambient_c = np.random.uniform(22.0, 45.0, h_records) # IoT Environmental Condition 
+h_veg_dist = np.random.uniform(0.2, 15.0, h_records) 
+h_sag_cm = np.random.uniform(0.0, 60.0, h_records) 
+h_ambient_c = np.random.uniform(22.0, 45.0, h_records) 
 
 t_rul = (h_health * 0.50) - (h_temps * 0.20) - (h_loads * 0.10) - (h_sag_cm * 0.15) + (h_veg_dist * 0.4) + 35 
 t_rul = np.clip(t_rul, 1, 90) + np.random.normal(0, 1.0, h_records) 
 
-# Train Multi-Modal Asset Health Regressor Model 
 ml_features = ['temp_C', 'load_pct', 'insulation_health', 'veg_distance_m', 'conductor_sag_cm', 'ambient_temp_C'] 
 X_train = pd.DataFrame({ 
     'temp_C': h_temps, 'load_pct': h_loads, 'insulation_health': h_health, 
@@ -65,17 +72,14 @@ X_train = pd.DataFrame({
 ml_model = RandomForestRegressor(n_estimators=60, random_state=42, n_jobs=-1) 
 ml_model.fit(X_train, t_rul) 
 
-# Core Operational Safety Boundaries 
 SAFE_BASE = 70.0 
 ALERT_THRESHOLD = 30.0 
 
-# Dynamic Line Rating (DLR) Logic: Optimizes lines based on cooling wind vs ambient heat 
 def calculate_dynamic_ceiling(ambient_temp, wind_speed): 
     base_ceiling = 86.0 
     thermal_cooling_effect = (wind_speed * 0.75) - ((ambient_temp - 30.0) * 0.2) 
     return float(np.clip(base_ceiling + thermal_cooling_effect, 76.0, 96.0))
 
-# Financial System Parameters (INR ₹) 
 COST_REPLACEMENT_GEN = 45000000 
 COST_REPLACEMENT_TX = 14000000 
 COST_LINE_REPAIR = 2200000 
@@ -85,39 +89,29 @@ PLANNED_LABOR_RATE = 4200
 AI_SOFTWARE_OVERHEAD = 88000 
 CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
-# Initialize Streamlit Layout Configuration
+# Setup persistent canvas placeholder containers
 st.set_page_config(page_title="APTRANSCO Control Monitor", layout="wide")
-
-# Persistent Dynamic Web Element Containers
 header_area = st.empty()
 table_area = st.empty()
-alert_area = st.empty()
 ledger_area = st.empty()
 
 # ===================================================================== 
-# 2. TIME-SYNCED INGESTION LOOP & DYNAMIC BALANCING ENGINE
+# 2. TIME-SYNCED INGESTION LOOP & DYNAMIC BALANCING ENGINE 
 # ===================================================================== 
 try: 
-    # Initialize loop count using Streamlit session state to persist across reruns safely
-    if "loop_count" not in st.session_state:
-        st.session_state.loop_count = 0
-    st.session_state.loop_count += 1
+    st.session_state.loop_count += 1 
     
-    # Indian Standard Time (IST) Synchronization
     ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
     timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S") 
     
-    # Simulating fluctuations, environmental dynamics, and drone anomaly ticks 
     fluctuation = np.sin(st.session_state.loop_count * 0.4) * 5.0 
     random_noise = np.random.uniform(-1.5, 1.5) 
     cur_wind = np.random.uniform(2.0, 14.0) 
     cur_ambient = np.random.uniform(32.0, 42.0) 
     
-    # Compute Dynamic Safety Limit for this specific timestamp context 
     DYNAMIC_SAFE_CEILING = calculate_dynamic_ceiling(cur_ambient, cur_wind) 
     peak_hour_multiplier = 1.08 
     
-    # Unified Network Representation: Generation, Transmission, and Distribution Layers 
     ap_grid_nodes = [ 
         {"asset_id": "Simhadri_STPS_Gen_Unit1", "level": "Generation", "temp_C": 102.0 + fluctuation, 
          "load_pct": (103.0 * peak_hour_multiplier) + fluctuation, "insulation_health": 41.5, 
@@ -141,11 +135,8 @@ try:
     
     live_grid_df = pd.DataFrame(ap_grid_nodes) 
     live_grid_df["timestamp"] = timestamp 
-    
-    # Execute ML Prediction over Multi-Modal Variables 
     live_grid_df["predicted_rul"] = ml_model.predict(live_grid_df[ml_features]) 
     
-    # Predictive Network Load Balancing Execution 
     balanced_grid_df = live_grid_df.copy() 
     stressed = balanced_grid_df[(balanced_grid_df["predicted_rul"] < ALERT_THRESHOLD) & (balanced_grid_df["level"] != "Generation")] 
     
@@ -162,9 +153,9 @@ try:
             balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
             load_to_shed -= transfer 
     
-    # Calculate Real-Time Ledger Values based on Grid Tier Classifications 
-    r_costs, p_costs = 0, 0 
-    field_dispatches = [] 
+    # Calculate live figures and stream them directly into session state storage
+    local_r_costs = 0
+    local_p_costs = 0
     
     for _, node in live_grid_df[live_grid_df["predicted_rul"] < ALERT_THRESHOLD].iterrows(): 
         if node["level"] == "Generation": 
@@ -174,21 +165,30 @@ try:
         else: 
             eq_loss = COST_LINE_REPAIR 
         
-        r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
-        p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
+        local_r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
+        local_p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
     
-    net_savings = max(0, r_costs - p_costs) 
+    st.session_state.r_costs = local_r_costs
+    st.session_state.p_costs = local_p_costs
+    st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
 
     # ===================================================================== 
     # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
     # ===================================================================== 
 
-    # Apply your pure-python formatting function directly to active values
-    r_costs_str = format_indian_currency(r_costs)
-    p_costs_str = format_indian_currency(p_costs)
-    net_savings_str = format_indian_currency(net_savings)
+    # Extract historical values safely from state memory
+    r_costs_str = format_indian_currency(st.session_state.r_costs)
+    p_costs_str = format_indian_currency(st.session_state.p_costs)
+    net_savings_str = format_indian_currency(st.session_state.net_savings)
 
-    # --- STREAMLIT WEB UI APP RENDERING ---
+    with header_area.container():
+        st.title("⚡ APTRANSCO Smart Grid Control monitor")
+        st.caption(f"**Tick Sequence ID:** #{st.session_state.loop_count} | **Timestamp (IST):** {timestamp}")
+
+    with table_area.container():
+        st.subheader("📊 Live Mesh Node Status Telemetry")
+        st.dataframe(live_grid_df[["asset_id", "level", "temp_C", "load_pct", "predicted_rul"]], use_container_width=True, hide_index=True)
+
     with ledger_area.container():
         st.markdown("### 💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
         
@@ -208,17 +208,17 @@ try:
             language="text"
         )
 
-    # Persist data logs to CSV file system
+    # Log values to persistent local disk file
     summary_data = live_grid_df.copy()
     summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
-    summary_data["net_savings_inr"] = net_savings
+    summary_data["net_savings_inr"] = st.session_state.net_savings
+    
     file_exists = os.path.isfile(CSV_FILE_PATH)
     summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
-    # UI Throttle Update Sync Break (Matches original pipeline timing metrics)
+    # Non-blocking web throttle sleep followed by safe UI update reload trigger
     time.sleep(2.5) 
     st.rerun()
 
-# This critical except statement satisfies Python syntax rules and completes Section 2's try block
 except Exception as pipeline_error:
-    st.error(f"Operational pipeline runtime exception raised: {pipeline_error}")
+    st.error(f"Operational pipeline runtime tracking paused: {pipeline_error}")
