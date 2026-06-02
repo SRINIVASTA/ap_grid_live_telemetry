@@ -68,13 +68,8 @@ try:
         loop_count += 1 
         
         # Indian Standard Time (IST) Synchronization
-        # Use this line instead if you only used "import datetime" at the top
-        ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
-        # ist_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=5, minutes=30)
+        ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
         timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S")
-
-        # ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30) 
-        #timestamp = ist_time.strftime("%Y-%m-%d %H:%M:%S")
 
         # Simulating fluctuations, environmental dynamics, and drone anomaly ticks
         fluctuation = np.sin(loop_count * 0.4) * 5.0 
