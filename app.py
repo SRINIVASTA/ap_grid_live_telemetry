@@ -12,6 +12,34 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 # ===================================================================== 
+# 0. GLOBAL UTILITY FUNCTIONS (Placed cleanly outside try-except blocks)
+# ===================================================================== 
+def format_indian_currency(amount):
+    try:
+        s = f"{float(amount):.2f}"
+        parts = s.split('.')
+        num_part = parts[0]
+        dec_part = parts[1]
+        
+        if len(num_part) <= 3:
+            return f"{num_part}.{dec_part}"
+            
+        last_three = num_part[-3:]
+        remaining = num_part[:-3]
+        
+        out = ""
+        while len(remaining) > 2:
+            out = "," + remaining[-2:] + out
+            remaining = remaining[:-2]
+        if remaining:
+            out = remaining + out
+            
+        return f"{out},{last_three}.{dec_part}"
+    except (ValueError, TypeError):
+        return "0.00"
+
+
+# ===================================================================== 
 # 1. CORE PIPELINE INITIALIZATION (MULTI-MODAL ML TRAINING) 
 # ===================================================================== 
 np.random.seed(42) 
@@ -176,42 +204,16 @@ try:
         else: 
             log_df.to_csv(CSV_FILE_PATH, index=False, mode='a', header=False) 
 
-        # ===================================================================== 
+# ===================================================================== 
 # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
 # ===================================================================== 
 
-# 1. Keep your pure-Python currency formatter here
-def format_indian_currency(amount):
-    try:
-        s = f"{float(amount):.2f}"
-        parts = s.split('.')
-        num_part = parts[0]
-        dec_part = parts[1]
-        
-        if len(num_part) <= 3:
-            return f"{num_part}.{dec_part}"
-            
-        last_three = num_part[-3:]
-        remaining = num_part[:-3]
-        
-        out = ""
-        while len(remaining) > 2:
-            out = "," + remaining[-2:] + out
-            remaining = remaining[:-2]
-        if remaining:
-            out = remaining + out
-            
-        return f"{out},{last_three}.{dec_part}"
-    except (ValueError, TypeError):
-        return "0.00"
+# Simply call the global function directly here—no nested function definitions!
+r_costs_str = format_indian_currency(r_costs)
+p_costs_str = format_indian_currency(p_costs)
+net_savings_str = format_indian_currency(net_savings)
 
-# 2. FIX: Pull values directly from Streamlit session state or variables 
-# instead of locals().get() to link the pipeline data to the UI.
-r_costs_str = format_indian_currency(st.session_state.get('r_costs', r_costs))
-p_costs_str = format_indian_currency(st.session_state.get('p_costs', p_costs))
-net_savings_str = format_indian_currency(st.session_state.get('net_savings', net_savings))
-
-# 3. Your metric ledger card layout container block runs exactly as it is...
+# --- STREAMLIT METRIC LEDGER CARD DISPLAY ---
 with ledger_area.container():
     st.markdown("### 💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
     
