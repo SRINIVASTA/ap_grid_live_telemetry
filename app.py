@@ -206,9 +206,13 @@ try:
             # FIXED: Enclosed the string inside an HTML <pre> monospace container block to preserve spacing and line breaks
             ledger_html = f"""
             <pre style="font-family: monospace; background-color: #1e1e1e; padding: 15px; border-radius: 5px; color: #ffffff; font-size: 14px; line-height: 1.6; margin: 0;">
-├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs:,.2f}
-├─ Managed AI Proactive Operations Cost      : ₹{p_costs:,.2f}
-└─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings:,.2f}
+# Print the cleanly aligned ledger
+print("-" * 110) 
+print(f" 곈곉 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER") 
+print(f"  ├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs_str}") 
+print(f"  ├─ Managed AI Proactive Operations Cost      : ₹{p_costs_str}") 
+print(f"  └─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings_str}") 
+print("=" * 110)
             </pre>
             """
             st.markdown(ledger_html, unsafe_allow_html=True)
