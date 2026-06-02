@@ -6,6 +6,9 @@ import time
 from datetime import datetime, timezone, timedelta
 from sklearn.ensemble import RandomForestRegressor 
 # from IPython.display import clear_output 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 
 # ===================================================================== 
 # 1. CORE PIPELINE INITIALIZATION (MULTI-MODAL ML TRAINING) 
