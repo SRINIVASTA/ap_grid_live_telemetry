@@ -177,7 +177,7 @@ try:
             log_df.to_csv(CSV_FILE_PATH, index=False, mode='a', header=False) 
 
         # ===================================================================== 
-        # 3. UNIFIED STREAMLIT WEB INTERFACE DISPLAY RENDERING (CORRECTED CHUNK)
+        # 3. UNIFIED STREAMLIT WEB INTERFACE DISPLAY RENDERING
         # ===================================================================== 
         with table_area.container():
             st.subheader("📋 Real-Time Asset Matrix & Predictive Load Management")
@@ -195,17 +195,24 @@ try:
                 st.success("✅ Operational System Healthy. No critical asset degradations found.")
             else:
                 for alert in field_dispatches:
-                    # FIXED: Changed alert(...) function syntax back to alert[...] dictionary lookup
-                    st.error(f"**[{alert['tier'].upper()} RISK]** {alert['asset_id']} — Remaining Useful Life: **{alert['rul']:.1f} Days**\n\n👉 *Guidance:* {alert['guidance']}")
+                    # FIXED: Changed broken functional alert(...) parentheses back to dictionary lookup brackets alert[...]
+                    st.error(f"[{alert['tier'].upper()} RISK] {alert['asset_id']} — Remaining Useful Life: {alert['rul']:.1f} Days\n\n👉 Guidance: {alert['guidance']}")
             st.markdown("---")
 
         # Rendering Infrastructure Ledger Component
         with ledger_area.container():
             st.subheader("💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
-            led_col1, led_col2, led_col3 = st.columns(3)
-            led_col1.metric(label="Unmitigated Risk Exposure", value=f"₹{r_costs:,.2f}")
-            led_col2.metric(label="Managed AI Proactive Cost", value=f"₹{p_costs:,.2f}")
-            led_col3.metric(label="NET PROTECTED STATE SAVINGS", value=f"₹{net_savings:,.2f}")
+            
+            # FIXED: Wrapped in an HTML pre-formatted monospace tag to preserve your tree alignments perfectly
+            ledger_html = f"""
+            <pre style="font-family: monospace; background-color: #1e1e1e; padding: 15px; border-radius: 5px; color: #ffffff; font-size: 14px; line-height: 1.5;">
+├─ Total Unmitigated Breakdown Risk Exposure : ₹{r_costs:,.2f}
+├─ Managed AI Proactive Operations Cost      : ₹{p_costs:,.2f}
+└─ NET CURRENT PROTECTED STATE SAVINGS       : ₹{net_savings:,.2f}
+            </pre>
+            """
+            st.markdown(ledger_html, unsafe_allow_html=True)
+            st.markdown("---")
             
         # UI Throttle Update Sync Break (Matches original pipeline timing metrics)
         time.sleep(2.5) 
