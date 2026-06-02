@@ -244,12 +244,39 @@ try:
     p_costs_str = format_indian_currency(st.session_state.p_costs)
     net_savings_str = format_indian_currency(st.session_state.net_savings)
 
-    # =====================================================================
-    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW
-    # =====================================================================
-
+    # ===================================================================== 
+    # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
+    # ===================================================================== 
+    
+    # Parse formatted localized display currency strings
+    r_costs_str = format_indian_currency(st.session_state.r_costs)
+    p_costs_str = format_indian_currency(st.session_state.p_costs)
+    net_savings_str = format_indian_currency(st.session_state.net_savings)
+    
     # ─── POWER BI BANNER NAVIGATION HEADER ───
     with header_area.container():
+        # FIXED: Global style definitions are safely nested inside an active container layout block
+        st.markdown("""
+            <style>
+            .stApp { background-color: #F3F4F6; }
+            div[data-testid="stMetricBlock"] {
+                background-color: #FFFFFF !important;
+                border-radius: 6px !important;
+                padding: 15px !important;
+                box-shadow: 0px 2px 4px rgba(0,0,0,0.05) !important;
+                border-left: 5px solid #118DFF !important; /* Power BI Primary Accent Blue */
+            }
+            div[data-testid="stMetricBlock"] label { font-weight: bold !important; color: #4B5563 !important; }
+            .powerbi-card {
+                background-color: #FFFFFF;
+                border-radius: 6px;
+                padding: 20px;
+                box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
+                margin-bottom: 20px;
+            }
+            </style>
+        """, unsafe_allowed_with_html=True)
+
         st.markdown(f"""
             <div style="background-color: #1F2937; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #FFFFFF;">
                 <h2 style='margin: 0; color: #FFFFFF; font-size: 24px;'>⚡ APTRANSCO Smart Grid Executive Report</h2>
@@ -266,9 +293,8 @@ try:
         m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
         m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
         
-        # CRITICAL FIX: Changed column accessor mapping from invalid () to valid []
         avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
-        m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta=f"{'Healthy' if avg_health > 45 else 'Action Needed'}")
+        m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta="Healthy" if avg_health > 45 else "Action Needed", delta_color="normal" if avg_health > 45 else "inverse")
 
     # ─── POWER BI CENTRAL DASHBOARD LAYOUT ───
     with main_layout_area.container():
@@ -278,7 +304,6 @@ try:
             st.markdown("<div class='powerbi-card'>", unsafe_allowed_with_html=True)
             st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
             
-            # CRITICAL FIX: Corrected column generation dictionary mappings to use square brackets []
             display_df = pd.DataFrame({
                 "Asset Tracking ID": filtered_live_df["asset_id"],
                 "Operational Layer Tier": filtered_live_df["level"],
@@ -289,7 +314,6 @@ try:
             })
             st.dataframe(display_df, use_container_width=True, hide_index=True)
             
-            # --- POWER BI DIRECT INTERACTIVE DATA DOWNLOAD LAYER ---
             if os.path.isfile(CSV_FILE_PATH):
                 @st.cache_data(ttl=2.0)
                 def convert_df_to_bytes(path):
@@ -312,7 +336,6 @@ try:
             
             if field_dispatches:
                 for idx, alert in enumerate(field_dispatches):
-                    # CRITICAL FIX: Changed alert evaluation call from alert("key") to alert["key"]
                     if alert["asset_id"] in filtered_live_df["asset_id"].values:
                         st.markdown(f"""
                             <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
@@ -324,7 +347,6 @@ try:
             else:
                 st.success("✅ All monitored nodes are performing within normal engineering parameters.")
                 
-            # Power BI Style DAX Console Log Output
             st.markdown("<br/>", unsafe_allowed_with_html=True)
             st.caption("**DAX Consolidated Ledger Log Expression Outflow**")
             st.code(
@@ -339,7 +361,6 @@ try:
     # Write metrics to persistent file storage
     if not pause_feed:
         summary_data = live_grid_df.copy()
-        # CRITICAL FIX: Fixed column instantiation syntax from summary_data("col") to summary_data["col"]
         summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
         summary_data["net_savings_inr"] = st.session_state.net_savings
         
