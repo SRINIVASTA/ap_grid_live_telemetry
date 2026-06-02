@@ -405,7 +405,7 @@ try:
             )
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Persist log records to disk storage asynchronously
+    # Persist log records to disk storage asynchronously (only when running)
     if not pause_feed:
         summary_data = live_grid_df.copy()
         summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
@@ -414,9 +414,15 @@ try:
         file_exists = os.path.isfile(CSV_FILE_PATH)
         summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
-    # Synchronized pipeline loop throttle time match
-    time.sleep(2.5)
-    st.rerun()
+    # ─── CRITICAL PAUSE ENGINE FIX ───
+    if pause_feed:
+        # If the toggle is turned ON, put the thread to a long sleep and stop page refreshes
+        time.sleep(1.0)
+        st.caption("⏸️ **Live Ingestion Interface Frozen.** Uncheck the sidebar slider to resume data streaming.")
+    else:
+        # If the toggle is turned OFF, stream normally at your exact 2.5-second metrics rate
+        time.sleep(2.5) 
+        st.rerun()
 
 except Exception as pipeline_error:
     st.error(f"Power BI Report engine processing error encountered: {pipeline_error}")
