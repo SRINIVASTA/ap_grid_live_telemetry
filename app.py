@@ -95,27 +95,6 @@ CSV_FILE_PATH = "ap_grid_unified_intelligence.csv"
 # ===================================================================== 
 st.set_page_config(page_title="APTRANSCO Power BI Control Analytics", layout="wide")
 
-# Custom CSS Inject to mimic corporate dashboard margins, card headers, and frames
-st.markdown("""
-    <style>
-    .stApp { background-color: #F3F4F6; }
-    div[data-testid="stMetricBlock"] {
-        background-color: #FFFFFF;
-        border-radius: 6px;
-        padding: 15px;
-        box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
-        border-left: 5px solid #118DFF; /* Power BI Primary Accent */
-    }
-    div[data-testid="stMetricBlock"] label { font-weight: bold !important; color: #4B5563 !important; }
-    .powerbi-card {
-        background-color: #FFFFFF;
-        border-radius: 6px;
-        padding: 20px;
-        box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-    }
-    </style>
-""", unsafe_allowed_with_html=True)
 
 # ─── POWER BI INTERACTIVE SLICER SIDEBAR ───
 with st.sidebar:
