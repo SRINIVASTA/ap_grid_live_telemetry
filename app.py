@@ -207,7 +207,7 @@ try:
             balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
             load_to_shed -= transfer 
     
-    # Financial ledger engine metrics
+    # Calculate live figures and stream them directly into session state storage
     local_r_costs = 0
     local_p_costs = 0
     field_dispatches = []
@@ -222,21 +222,20 @@ try:
         
         local_r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
         local_p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
-        
+
         field_dispatches.append({ 
             "asset_id": node["asset_id"], 
             "tier": node["level"], 
             "rul": node["predicted_rul"], 
-            "guidance": "Schedule insulation verification." if node["insulation_health"] < 40 else "Deploy hazard removal clearance crews." 
+            "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal." 
         })
-    
-    if not pause_feed:
-    # Assign local calculation variables directly to global session states
+
+    # Core operational data alignment block
     st.session_state.r_costs = local_r_costs
     st.session_state.p_costs = local_p_costs
     st.session_state.net_savings = max(0, local_r_costs - local_p_costs)
 
-    # CRITICAL FIX: Repaired severe syntax errors in Pandas Slicer Filter Transformation logic
+    # Repaired Pandas Slicer Filter Transformation logic
     filtered_live_df = live_grid_df[live_grid_df["level"].isin(selected_tier)]
     filtered_balanced_df = balanced_grid_df[balanced_grid_df["level"].isin(selected_tier)]
 
