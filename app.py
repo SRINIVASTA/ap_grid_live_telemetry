@@ -269,6 +269,29 @@ try:
     # =====================================================================
     # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW
     # =====================================================================
+
+
+    # FIXED: Shortcode conversion math logic that forces rounding to Lakhs and Crores
+    def format_powerbi_shortcode(amount):
+        try:
+            val = float(amount)
+            if val >= 10000000:    # 1 Crore or higher -> Round to Cr
+                return f"{val / 10000000:.2f} Cr"
+            elif val >= 100000:   # 1 Lakh or higher -> Round to L
+                return f"{val / 100000:.2f} L"
+            elif val == 0:
+                return "0.00"
+            else:                 # Values under 1 Lakh
+                return f"{val:,.2f}"
+        except (ValueError, TypeError):
+            return "0.00"
+
+    # CRITICAL TRACKING FIX: Bind your metric strings to the shortcode function 
+    # instead of format_indian_currency to eliminate long raw values completely.
+    r_costs_str = format_powerbi_shortcode(st.session_state.r_costs)
+    p_costs_str = format_powerbi_shortcode(st.session_state.p_costs)
+    net_savings_str = format_powerbi_shortcode(st.session_state.net_savings)
+
     
     # ─── POWER BI BANNER NAVIGATION HEADER & INJECTED STYLES ───
     with header_area.container():
