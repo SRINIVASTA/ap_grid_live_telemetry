@@ -7,22 +7,24 @@ An advanced, multi-modal machine learning platform and real-time ingestion pipel
 ## 🛠️ Core Functional Architecture
 
 ### 1. Multi-Modal ML Engine
-* **Asset Health Regressor:** Built on a `RandomForestRegressor` ensemble pipeline trained across multiple vectors.
-* **Feature Integration:** Synthesizes internal thermal loads (`temp_C`, `load_pct`), structural health degradation indices (`insulation_health`), drone spatial anomalies (`veg_distance_m`, `conductor_sag_cm`), and environmental IoT metrics (`ambient_temp_C`).
+* **Asset Health Regressor**: Built on a `RandomForestRegressor` ensemble pipeline trained across multiple vectors.
+* **Feature Integration**: Synthesizes internal thermal loads (`temp_C`, `load_pct`), structural health degradation indices (`insulation_health`), drone spatial anomalies (`veg_distance_m`, `conductor_sag_cm`), and environmental IoT metrics (`ambient_temp_C`).
 
 ### 2. Dynamic Line Rating (DLR) Logic
-* **Adaptive Ceilings:** Automatically scales safe operational line thresholds between **76.0% and 96.0%** capacity.
-* **Thermal Modeling:** Computes ambient cooling coefficients using real-time local wind velocity measurements weighted against thermal air stresses.
+* **Adaptive Ceilings**: Automatically scales safe operational line thresholds between **76.0% and 96.0%** capacity.
+* **Thermal Modeling**: Computes ambient cooling coefficients using real-time local wind velocity measurements weighted against thermal air stresses.
 
 ### 3. Predictive Load Balancing Engine
-* **Automated Mitigation:** Scans the infrastructure mesh for nodes dropping below critical RUL boundaries (< 30 days).
-* **Shedding Optimization:** Isolates available system headroom and smoothly steps down overstressed elements, rerouting power directly into under-utilized grid layers without dropping generation baseloads.
+* **Automated Mitigation**: Scans the infrastructure mesh for nodes dropping below critical RUL boundaries (< 30 days).
+* **Shedding Optimization**: Isolates available system headroom and smoothly steps down overstressed elements, rerouting power directly into under-utilized grid layers without dropping generation baseloads.
+
+---
 
 ## 💻 Tech Stack
-* **Language:** Python 3.10+
-* **ML Framework:** Scikit-Learn (Random Forest Ensemble)
-* **Data Processing:** NumPy, Pandas
-* **UI Layer:** Streamlit Web Framework / Interactive Control Room CLI Terminal
+* **Language**: Python 3.10+
+* **ML Framework**: Scikit-Learn (Random Forest Ensemble)
+* **Data Processing**: NumPy, Pandas
+* **UI Layer**: Streamlit Web Framework / Interactive Control Room CLI Terminal
 
 ---
 
@@ -61,6 +63,8 @@ To start the standard telemetry streaming loop in a terminal session:
 python grid_monitor.py
 ```
 
+---
+
 ## 📁 System Parameters & Storage Outflow
 
 ### Financial Allocation Ledger (INR ₹)
@@ -85,3 +89,6 @@ On every pipeline cycle tick, the engine appends compressed telemetry and optimi
 
 ## 📄 License
 This grid control system software is proprietary property. Licensed for authorized use inside **APTRANSCO and APSPDCL Power Systems Operations Control Centres (SLDC)**.
+
+---
+**Created by:** Srinivasta
