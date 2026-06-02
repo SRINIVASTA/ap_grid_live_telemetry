@@ -89,9 +89,10 @@ PLANNED_LABOR_RATE = 4200
 AI_SOFTWARE_OVERHEAD = 88000 
 CSV_FILE_PATH = "ap_grid_unified_intelligence.csv" 
 
-# Setup persistent canvas placeholder containers
+# Setup layout parameters
 st.set_page_config(page_title="APTRANSCO Control Monitor", layout="wide")
 header_area = st.empty()
+alert_area = st.empty()
 table_area = st.empty()
 ledger_area = st.empty()
 
@@ -153,9 +154,9 @@ try:
             balanced_grid_df.loc[best_idx, "load_pct"] += transfer 
             load_to_shed -= transfer 
     
-    # Calculate live figures and stream them directly into session state storage
     local_r_costs = 0
     local_p_costs = 0
+    field_dispatches = []
     
     for _, node in live_grid_df[live_grid_df["predicted_rul"] < ALERT_THRESHOLD].iterrows(): 
         if node["level"] == "Generation": 
@@ -167,6 +168,13 @@ try:
         
         local_r_costs += eq_loss + REGULATORY_FINE + (24 * EMERGENCY_LABOR_RATE) 
         local_p_costs += (8 * PLANNED_LABOR_RATE) + AI_SOFTWARE_OVERHEAD 
+
+        field_dispatches.append({ 
+            "asset_id": node["asset_id"], 
+            "tier": node["level"], 
+            "rul": node["predicted_rul"], 
+            "guidance": "Schedule targeted insulation verification." if node["insulation_health"] < 40 else "Deploy clearance crews for vegetation/sag hazard removal." 
+        })
     
     st.session_state.r_costs = local_r_costs
     st.session_state.p_costs = local_p_costs
@@ -175,19 +183,34 @@ try:
     # ===================================================================== 
     # 3. UNIFIED OPERATOR VIEW & INTEGRATED CONTROL ROOM OUTFLOW 
     # ===================================================================== 
-
-    # Extract historical values safely from state memory
     r_costs_str = format_indian_currency(st.session_state.r_costs)
     p_costs_str = format_indian_currency(st.session_state.p_costs)
     net_savings_str = format_indian_currency(st.session_state.net_savings)
 
     with header_area.container():
-        st.title("⚡ APTRANSCO Smart Grid Control monitor")
+        st.title("⚡ APTRANSCO Smart Grid Control Monitor")
         st.caption(f"**Tick Sequence ID:** #{st.session_state.loop_count} | **Timestamp (IST):** {timestamp}")
+        st.info(f"🎯 **Adaptive Dynamic Safety Ceiling Limit:** {DYNAMIC_SAFE_CEILING:.1f}% Load Capacity")
+
+    with alert_area.container():
+        if field_dispatches:
+            st.error(f"🚨 **CRITICAL EMERGENCY ALERT**: {len(field_dispatches)} Anomalies Found!")
+            for alert in field_dispatches:
+                st.warning(f"⚠️ **[{alert['tier'].upper()} RISK]** {alert['asset_id']} ➜ RUL: {alert['rul']:.1f} Days. *Guidance:* {alert['guidance']}")
+        else:
+            st.success("✅ All state grid infrastructure metrics currently operating within normal engineering metrics.")
 
     with table_area.container():
         st.subheader("📊 Live Mesh Node Status Telemetry")
-        st.dataframe(live_grid_df[["asset_id", "level", "temp_C", "load_pct", "predicted_rul"]], use_container_width=True, hide_index=True)
+        display_df = pd.DataFrame({
+            "Asset Identification": live_grid_df["asset_id"],
+            "Layer Tier": live_grid_df["level"],
+            "Telemetry Temp (°C)": live_grid_df["temp_C"].round(1),
+            "Unmanaged Load %": live_grid_df["load_pct"].round(2),
+            "AI Balanced Load %": balanced_grid_df["load_pct"].round(2),
+            "Predicted RUL (Days)": live_grid_df["predicted_rul"].round(1)
+        })
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     with ledger_area.container():
         st.markdown("### 💰 STATE POWER INFRASTRUCTURE CAPITAL PROTECTION INTEGRATED LEDGER")
@@ -216,7 +239,6 @@ try:
     file_exists = os.path.isfile(CSV_FILE_PATH)
     summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
 
-    # Non-blocking web throttle sleep followed by safe UI update reload trigger
     time.sleep(2.5) 
     st.rerun()
 
