@@ -309,29 +309,15 @@ try:
         m_col1.metric("Total Breakdown Financial Risk", f"₹ {r_costs_str}")
         m_col2.metric("Managed AI Proactive Fix Cost", f"₹ {p_costs_str}")
         m_col3.metric("NET PROTECTED STATE CAPITAL", f"₹ {net_savings_str}")
-    # Custom rounding and shortcode conversion function
-    def format_powerbi_shortcode(amount):
-        try:
-            val = float(amount)
-            if val >= 10000000:    # 1 Crore or higher -> Round to Cr
-                return f"{val / 10000000:.2f} Cr"
-            elif val >= 100000:   # 1 Lakh or higher -> Round to L
-                return f"{val / 100000:.2f} L"
-            elif val == 0:
-                return "0.00"
-            else:                 # Smaller values under 1 Lakh
-                return f"{val:,.2f}"
-        except (ValueError, TypeError):
-            return "0.00"
-
-    # Convert live figures to crisp rounded Power BI strings
-    r_costs_str = format_powerbi_shortcode(st.session_state.r_costs)
-    p_costs_str = format_powerbi_shortcode(st.session_state.p_costs)
-    net_savings_str = format_powerbi_shortcode(st.session_state.net_savings)
-
         
+        # FIXED: Removed the accidental extra space to perfectly align with the metrics layout above
         avg_health = filtered_live_df["predicted_rul"].mean() if not filtered_live_df.empty else 90.0
-        m_col4.metric("Grid System Health Index", f"{avg_health:.1f} RUL Days", delta="Healthy" if avg_health > 45 else "Action Needed", delta_color="normal" if avg_health > 45 else "inverse")
+        m_col4.metric(
+            "Grid System Health Index", 
+            f"{avg_health:.1f} RUL Days", 
+            delta="Healthy" if avg_health > 45 else "Action Needed", 
+            delta_color="normal" if avg_health > 45 else "inverse"
+        )
 
     # ─── POWER BI CENTRAL DASHBOARD LAYOUT ───
     with main_layout_area.container():
