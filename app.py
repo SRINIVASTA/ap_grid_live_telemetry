@@ -16,6 +16,37 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # ===================================================================== 
 def format_indian_currency(amount):
     """
+    Formats large financial values into highly scannable, condensed 
+    Indian shortcodes (Cr. for Crores, L. for Lakhs) matching Power BI visual standards.
+    """
+    try:
+        val = float(amount)
+        if val >= 10000000: # 1 Crore or more
+            return f"{val / 10000000:.2f} Cr"
+        elif val >= 100000: # 1 Lakh or more
+            return f"{val / 100000:.2f} L"
+        else:
+            # Standard formatting for smaller overheads/labor numbers
+            s = f"{val:.2f}"
+            parts = s.split('.')
+            num_part = parts[0]
+            dec_part = parts[1]
+            if len(num_part) <= 3:
+                return f"{num_part}.{dec_part}"
+            last_three = num_part[-3:]
+            remaining = num_part[:-3]
+            out = ""
+            while len(remaining) > 2:
+                out = "," + remaining[-2:] + out
+                remaining = remaining[:-2]
+            if remaining:
+                out = remaining + out
+            return f"{out},{last_three}.{dec_part}"
+    except (ValueError, TypeError, IndexError):
+        return "0.00"
+
+def format_indian_currency(amount):
+    """
     Pure-Python OS-Independent Formatter for Indian Standard Currency Notation.
     Groupings: Thousands base digit split followed by Lakhs and Crores pairs.
     """
