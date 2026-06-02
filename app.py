@@ -289,3 +289,66 @@ try:
         with left_panel:
             st.markdown("<div class='powerbi-card'>", unsafe_allow_html=True)
             st.subheader("📊 Live Grid Asset Cross-Tabular Matrix")
+            # --- INTERACTIVE DATA LEDGER FILE EXPORT LAYER ---
+            if os.path.isfile(CSV_FILE_PATH):
+                @st.cache_data(ttl=2.0)
+                def convert_df_to_bytes(path):
+                    with open(path, "rb") as f:
+                        return f.read()
+                csv_bytes = convert_df_to_bytes(CSV_FILE_PATH)
+                st.download_button(
+                    label="📥 Export Live Intelligence Ledger Data (.CSV)",
+                    data=csv_bytes,
+                    file_name=f"ap_grid_bi_ledger_{timestamp.replace(' ', '_').replace(':', '-')}.csv",
+                    mime="text/csv",
+                    key="bi_ledger_download_trigger",
+                    use_container_width=True
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with right_panel:
+            st.markdown("<div class='powerbi-card'>", unsafe_allow_html=True)
+            st.subheader("🚨 Real-Time Action Dispatches")
+            
+            if field_dispatches:
+                for idx, alert in enumerate(field_dispatches):
+                    if alert["asset_id"] in filtered_live_df["asset_id"].values:
+                        st.markdown(f"""
+                            <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; border-radius: 4px; margin-bottom: 10px;">
+                                <strong style="color: #991B1B;">⚠️ {alert['asset_id']}</strong><br/>
+                                <small style="color: #B91C1C;">Layer: {alert['tier']} | Est. RUL: {alert['rul']:.1f} Days</small><br/>
+                                <span style="font-size: 13px; color: #374151;">👉 <b>Guidance:</b> {alert['guidance']}</span>
+                            </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.success("✅ All monitored nodes are performing within normal engineering parameters.")
+                
+            st.markdown("<br/>", unsafe_allow_html=True)
+            st.caption("**DAX Consolidated Ledger Log Expression Outflow**")
+            st.code(
+                f"EVALUATE MEASURE 'Ledger'[ProtectedStateSavings]\n"
+                f" ├─ Total Unmitigated Risk Exposure : ₹{r_costs_str}\n"
+                f" ├─ Managed Proactive Operations Cost: ₹{p_costs_str}\n"
+                f" └─ NET CURRENT PROTECTED SAVINGS    : ₹{net_savings_str}",
+                language="text"
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # Persist log records to disk storage asynchronously
+    if not pause_feed:
+        summary_data = live_grid_df.copy()
+        summary_data["ai_balanced_load_pct"] = balanced_grid_df["load_pct"]
+        summary_data["net_savings_inr"] = st.session_state.net_savings
+        
+        file_exists = os.path.isfile(CSV_FILE_PATH)
+        summary_data.to_csv(CSV_FILE_PATH, mode='a', header=not file_exists, index=False)
+
+    # Synchronized pipeline loop throttle time match
+    time.sleep(2.5) 
+    st.rerun()
+
+# =====================================================================
+# CRITICAL STRUCTURAL CLOSURE (Satisfies Python Syntax rules for Section 2 try block)
+# =====================================================================
+except Exception as pipeline_error:
+    st.error(f"Power BI Report engine processing error encountered: {pipeline_error}")
